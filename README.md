@@ -86,10 +86,14 @@ flowchart LR
     PAY -->|Loans| LOAN[Auto-Deduct Active Loans]
     PAY -->|Gov Files| REMIT[SSS R3 / PhilHealth RF-1 / PagIBIG MCRF]
 
+    %% External Uploads Security Layer
+    UPL[Manual/Legacy Uploads] -->|<b>Secure Validation</b><br/>25MB Limit + MIME Check| LOG
+
     style HW fill:#002060,color:#fff
     style SLIP fill:#D4AF37,color:#fff
     style REP fill:#D4AF37,color:#fff
     style REMIT fill:#10b981,color:#fff
+    style UPL fill:#ef4444,color:#fff
 ```
 
 ### Fieldwork & Physical Attendance Overlap
@@ -423,6 +427,11 @@ flowchart TD
 - **Automated Break Subtraction**: Any active break defined in settings with a duration of 1 hour or more is automatically deducted from total hours if the employee's work interval overlaps with the break window.
 
 ### 6. Security & Reliability
+- **Secure File Uploads**:
+  - **Size Hardening**: Integrated 25MB enforced limit on both frontend (immediate feedback) and backend (security boundary).
+  - **MIME & Extension Guards**: Strict verification of file contents for images (photos) and CSV/Excel (rosters).
+  - **Filename Obfuscation**: Personal employee photos are automatically renamed to non-predictable UUIDs to prevent directory traversal and metadata leakage.
+  - **Storage Isolation**: Media files are stored in `payroll_uploads/` outside the project root for better data isolation.
 - **Authenticated Exports**: All reports secured behind JWT, preventing unauthorized data access.
 - **Encrypted Comm Keys**: AES-256 encryption for hardware communication keys stored in the database.
 - **Defensive Downloads**: Blob-based download logic with race-condition protection.
