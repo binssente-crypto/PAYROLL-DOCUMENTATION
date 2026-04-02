@@ -468,13 +468,19 @@ flowchart TD
 - **Bonus Overrides**: Test bonus amounts before committing.
 - **Comparison View**: Side-by-side simulated payslips with totals.
 
-### 11. Real-Time Cost Dashboard
+### 11. Responsive Mobile Architecture
+- **Dedicated Mobile UX**: Complete parallel mobile interface utilizing dynamically injected wrapper components, preserving the integrity of the desktop UI.
+- **Floating Glassmorphic Navbar**: Enhanced bottom navigation matching premium native mobile app paradigms.
+- **Intelligent Switching**: Components and data views dynamically pivot between desktop tables and mobile-optimized cards based on viewport detection.
+- **Smart Data Culling**: Dense matrices like Payroll ledgers provide clear CTA redirects to the desktop view, ensuring mobile device rendering stays fast and lightweight.
+
+### 12. Real-Time Cost Dashboard
 - **Privacy Guard**: Sensitive financial metrics (Branch Overview, Labor Cost, YTD Summary) are protected by a password-reveal lock.
   - **Branch Comparison**: Side-by-side cards comparing headcount, total gross, average salary, and overtime across branches.
   - **Monthly Labor Cost Chart**: Interactive **Stacked Bar Chart** showing payroll expenses segmented by branch (`AAA`, `Bizmaker`, and `Gamma`) for clear financial attribution.
   - **YTD Summary**: Gross, Net, Overtime, and Bonuses totals for the year.
 
-### 12. Government Remittance Files
+### 13. Government Remittance Files
 - **SSS R3 Report**: CSV export with EE/ER shares and EC contributions.
 - **PhilHealth RF-1**: CSV export with premium splits per employee.
 - **Pag-IBIG MCRF**: CSV export with contribution breakdowns.
@@ -482,13 +488,13 @@ flowchart TD
 - **Automatic Branch Cost Comparison**: Side-by-side analytics for `AAA and Co., CPAs`, `Bizmaker Consultancy, Inc.`, and `Gamma Oracle Dimensions Inc.`, including headcount, average salary, and budget utilization.
 - **Monthly Total Aggregation**: Combines both semi-monthly cycles into a single remittance file, aggregating per employee.
 
-### 13. Global Holiday Synchronization
+### 14. Global Holiday Synchronization
 - **Nager.Date API Integration**: Automatically synchronizes official Philippine public holidays for any given year into the local database.
 - **Holy Week Readiness**: Native handling for Maundy Thursday, Good Friday, and Black Saturday.
 - **"Resting" Logic**: Employees are automatically categorized as "Resting" instead of "Absent" on official holidays, preventing false-positive attendance reports.
 - **One-Click Sync**: Admin-accessible sync button in settings to pull latest government-declared dates.
 
-### 14. Premium Micro-Animations
+### 15. Premium Micro-Animations
 - **Reactive Chart Re-renders**: Every analytics chart (Donut, Stacked Bar) utilizes a reactive-key strategy. When data loads, the chart performs a smooth "form-out" drawing animation rather than appearing statically.
 - **Glassmorphic Feedback**: Smoother transitions and hover states for all interactive KPI cards.
 
