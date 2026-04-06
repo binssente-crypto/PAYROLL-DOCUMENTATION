@@ -49,6 +49,7 @@ flowchart TD
         Tables --> Calc[Net Pay]
         Calc --> Gen[Payslip]
         Gen --> Export([Export Reports])
+        Export --> XLSX[Premium Payroll XLSX]
         Export --> PDF[BIR 1601-C PDF]
         Export --> DAT[Alpha-List .DAT]
         Export --> CSV[Bank Transmittal]
@@ -80,9 +81,9 @@ flowchart LR
     HOL[Holiday Pay Config] -->|Multiplier Appl| DAY
     
     DAY -->|Input| PAY[Payroll Engine]
-    PRO[Configuration Store] -->|Contribution Tables| PAY
+    PRO -->|Configuration Store| PAY
     PAY -->|BIR Compliance| SLIP[Individual Payslips]
-    PAY -->|Accounting| REP[Excel/PDF Reports]
+    PAY -->|Accounting| REP[Premium XLSX / PDF Reports]
     PAY -->|Loans| LOAN[Auto-Deduct Active Loans]
     PAY -->|Gov Files| REMIT[SSS R3 / PhilHealth RF-1 / PagIBIG MCRF]
 
@@ -298,6 +299,10 @@ erDiagram
     }
 
     PAYROLL_CONFIGURATION {
+        int cycle1_start_day "e.g. 6"
+        int cycle1_end_day "e.g. 20"
+        int cycle2_start_day "e.g. 21"
+        int cycle2_end_day "e.g. 5"
         decimal sss_fixed_rate
         decimal philhealth_fixed_rate
         string current_tax_table
@@ -358,7 +363,8 @@ erDiagram
 ## Core Features
 
 ### 1. Philippine Payroll Compliance
-- **Semi-Monthly Processing**: Native support for 15-day pay cycles with period-specific financial summaries.
+- **Payroll XLSX Export (Premium)**: Multi-sheet Excel workbook with live formulas, individual employee sheets, Master Summary, and dynamic statutory contribution lookups (SSS/PH/HDMF).
+- **Semi-Monthly Processing**: Configurable 15-day pay cycles (e.g., 6th–20th / 21st–5th) via the Global Configuration.
 - **Official BIR Reporting**: 
   - **BIR Form 1601-C (PDF)**: Professional PDF summaries for monthly remittance.
   - **Annual Alpha-List (.DAT)**: Mandatory BIR-compliant file format for validation modules.
@@ -476,6 +482,8 @@ flowchart TD
 
 ### 12. Real-Time Cost Dashboard
 - **Privacy Guard**: Sensitive financial metrics (Branch Overview, Labor Cost, YTD Summary) are protected by a password-reveal lock.
+  - **3-Hour Auto-Reveal**: Once unlocked, data stays revealed for 3 hours across sessions for convenience.
+  - **Manual Lock**: A dedicated 🔒 button in the header allows instant re-blurring at any time.
   - **Branch Comparison**: Side-by-side cards comparing headcount, total gross, average salary, and overtime across branches.
   - **Monthly Labor Cost Chart**: Interactive **Stacked Bar Chart** showing payroll expenses segmented by branch (`AAA`, `Bizmaker`, and `Gamma`) for clear financial attribution.
   - **YTD Summary**: Gross, Net, Overtime, and Bonuses totals for the year.
@@ -498,6 +506,7 @@ flowchart TD
 - **Reactive Chart Re-renders**: Every analytics chart (Donut, Stacked Bar) utilizes a reactive-key strategy. When data loads, the chart performs a smooth "form-out" drawing animation rather than appearing statically.
 - **Glassmorphic Feedback**: Smoother transitions and hover states for all interactive KPI cards.
 
+
 ## License
 
-Copyright (c) 2026 BizMaker. Private Repository.
+Copyright (c) 2026 BizMaker.
