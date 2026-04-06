@@ -457,7 +457,7 @@ flowchart TD
 - **Shift Templates**: Create reusable shifts (Morning, Mid, Night, Custom) with start/end times, break windows, and color coding.
 - **Weekly Calendar Roster**: Visual grid showing all employees × 7 days. Click any cell to quick-assign a shift.
 - **Bulk Assignment**: Assign a shift to multiple employees across a date range, with automatic rest-day skipping.
-- **Global Fallback**: If no shift is assigned, the system falls back to the global `standard_shift_start/end` from PayrollConfiguration.
+- **Global Fallback**: If no shift is assigned, the system falls back to the global `standard_shift_start/end` (8:30 AM to 5:30 PM default) from PayrollConfiguration.
 
 ### 9. Anomaly Detection
   - **Zero AI / Zero RAM Overhead**: Pure SQL queries and threshold rules — no machine learning libraries.
@@ -506,7 +506,6 @@ flowchart TD
 - **Reactive Chart Re-renders**: Every analytics chart (Donut, Stacked Bar) utilizes a reactive-key strategy. When data loads, the chart performs a smooth "form-out" drawing animation rather than appearing statically.
 - **Glassmorphic Feedback**: Smoother transitions and hover states for all interactive KPI cards.
 
-
 ## License
 
-Copyright (c) 2026 BizMaker.
+Copyright (c) 2026 BizMaker. Private Repository.
