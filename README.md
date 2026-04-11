@@ -1,70 +1,79 @@
-# BizMaker Payroll System
+# BizMaker Premium Payroll & ERP Suite
 
-A comprehensive payroll management system designed for Philippine businesses, supporting ZKTeco biometric device integration, automated holiday pay calculations, loan tracking, shift scheduling, anomaly detection, and secured REST APIs.
+A high-performance, enterprise-grade payroll management system engineered for the Philippine regulatory landscape. Featuring seamless **ZKTeco Biometric Integration**, automated **PH Holiday Compliance**, multi-tenant **Branch Attribution**, and a stunning **Glassmorphic Analytics Dashboard**.
 
 ## Project Overview
 
-BizMaker Payroll is a full-stack application that synchronizes attendance data from biometric hardware to a centralized database, processes payroll according to Philippine labor laws (DOLE/BIR), and provides a modern web interface for administrative management.
+BizMaker Payroll is a robust full-stack ecosystem that bridge-syncs real-time attendance data from edge devices to a secured cloud infrastructure. It automates the end-to-end payroll lifecycle—from raw biometric ingestion and anomaly detection to generating BIR-compliant reporting and bank-ready disbursement files.
 
 ## System Lifecycle Flowchart
 
 ```mermaid
 flowchart TD
-    subgraph Init["<b>Phase 1: Environment & Authentication</b>"]
+    subgraph Init["<b>Phase 1: Secure Edge Onboarding</b>"]
         direction TB
         s1[ ] --- Start((Start))
         Start --> Env{Env Check}
         Env -- "Fail" --> Err1[/Log Error & Halt/]
-        Env -- "Success" --> Auth{Device Set?}
-        Auth -- No --> Setup[Setup Hardware]
-        Auth -- Yes --> Login[Login/Auth]
-        Setup --> Login
-        Login --> Dashboard[Premium Dashboard]
+        Env -- "Success" --> Mode{Cloud Mode?}
+        Mode -- "Yes (0.0.0.0)" --> Bypass[Cloud Setup Bypass]
+        Mode -- "No" --> Auth{Hardware Set?}
+        Auth -- No --> Setup[Physical Provisioning]
+        Auth -- Yes --> LoginCreds[Credential Check]
+        Bypass --> LoginCreds
+        Setup --> LoginCreds
+        LoginCreds --> OtpSend[Send Email Verification Code]
+        OtpSend --> OtpVerify{Code Valid?}
+        OtpVerify -- "No" --> Err2[/Reject Sign-in/]
+        OtpVerify -- "Yes" --> Login[Issue JWT Session]
+        Login --> Dashboard[Premium Analytics Dashboard]
     end
 
-    subgraph Ops["<b>Phase 2: Smart Attendance Sync</b>"]
+    subgraph Ops["<b>Phase 2: Intelligent Ingestion</b>"]
         direction TB
         s2[ ] --- Dashboard
-        Trigger[Sync Trigger] --> Sync[Fetch Logs]
-        Dashboard --> Trigger
+        Dashboard --> Trigger[Sync Trigger]
+        Trigger --> Sync[Batch Fetch Records]
         
-        Sync --> Busy{Busy?}
-        Busy -- No --> Hol{Holiday?}
-        Hol -- Yes --> Resting[Mark Resting]
-        Hol -- No --> Proc[Process Logs]
+        Sync --> Busy{Hardware Busy?}
+        Busy -- No --> Hol{PH Holiday?}
+        Hol -- Yes --> Resting[Mark 'Resting' - No Absent Flag]
+        Hol -- No --> Proc[Engine: Log Processing]
         
-        Proc --> SmartSync{Smart Sync}
-        SmartSync -->|Update Placeholder| Emp[Employee DB]
-        Proc --> BreakTime[Break Subtraction]
-        BreakTime --> Rec[Daily Record]
+        Proc --> SmartSync{Smart Profile Sync}
+        SmartSync -->|Data Enrichment| Emp[(Employee DB)]
+        Proc --> BreakTime[Auto-Break Deduction]
+        BreakTime --> Rec[Digital Attendance Record]
         Resting --> Rec
     end
 
-    subgraph Final["<b>Phase 3: BIR/DOLE Compliance</b>"]
+    subgraph Final["<b>Phase 3: Statutory & Financial Compliance</b>"]
         direction TB
         s3[ ] --- Rec
-        Rec --> Cycle{Period End}
-        Cycle -- Yes --> Engine[PH Payroll Engine]
-        Engine --> Tables{Deductions}
-        Tables --> Calc[Net Pay]
-        Calc --> Gen[Payslip]
-        Gen --> Export([Export Reports])
+        Rec --> Cycle{Cycle Closure}
+        Cycle -- Yes --> Engine[Engine: PH Compliance 5.2]
+        Engine --> Tables{Grid Deductions}
+        Tables --> Calc[Net Pay Calculation]
+        Calc --> Gen[Secure Payslip Generation]
+        Gen --> Export([Multi-Report Export])
         Export --> XLSX[Premium Payroll XLSX]
-        Export --> PDF[BIR 1601-C PDF]
-        Export --> DAT[Alpha-List .DAT]
-        Export --> CSV[Bank Transmittal]
-        Export --> REM[SSS/PhilHealth/PagIBIG Remittance]
+        Export --> PDF[BIR 1601-C Suite]
+        Export --> DAT[Alpha-List .DAT Validator]
+        Export --> CSV[Bank Transmittal Suite]
+        Export --> REM[Statutory: R3 / RF-1 / MCRF]
     end
 
-    %% Styling
-    classDef bizGold fill:#D4AF37,stroke:#333,stroke-width:2px,color:#fff
-    classDef bizNavy stroke:#002060,stroke-width:2px,fill:none
+    %% Aesthetics
+    classDef bizGold fill:#D4AF37,stroke:#002060,stroke-width:2px,color:#fff
+    classDef bizNavy fill:none,stroke:#002060,stroke-width:2px,color:#002060
+    classDef bizEmerald fill:#10b981,stroke:#002060,stroke-width:2px,color:#fff
     classDef process fill:#f8f9fa,stroke:#002060,stroke-width:1px
     classDef spacer fill:none,stroke:none,color:none
     
-    class Start,Export,PDF,DAT,CSV bizGold
+    class Start,Export,Gen,XLSX,PDF,DAT,CSV,REM,Login bizGold
     class Init,Ops,Final bizNavy
-    class Env,Auth,Busy,SmartSync,Cycle,Tables process
+    class Emp bizEmerald
+    class Env,Auth,Busy,SmartSync,Cycle,Tables,Mode,Hol,LoginCreds,OtpSend,OtpVerify process
     class s1,s2,s3 spacer
 ```
 
@@ -72,52 +81,66 @@ flowchart TD
 
 ### Attendance & Payroll Flow
 ```mermaid
-flowchart LR
-    HW[ZK Device] -->|Fetch Logs| LOG[Raw Attendance Log]
-    LOG -->|Mapping| MAP{Machine ID Mapping}
-    MAP -->|Process| DAY[Daily Attendance Record]
+    flowchart TD
+    %% Cloud Bridge Sync
+    subgraph Local["<b>Edge Network (Private LAN)</b>"]
+        direction LR
+        HW[ZK Biometric Device]
+    end
     
-    FW[Fieldwork Requests] -->|Hybrid Merge| DAY
-    HOL[Holiday Pay Config] -->|Multiplier Appl| DAY
-    
-    DAY -->|Input| PAY[Payroll Engine]
-    PRO -->|Configuration Store| PAY
-    PAY -->|BIR Compliance| SLIP[Individual Payslips]
-    PAY -->|Accounting| REP[Premium XLSX / PDF Reports]
-    PAY -->|Loans| LOAN[Auto-Deduct Active Loans]
-    PAY -->|Gov Files| REMIT[SSS R3 / PhilHealth RF-1 / PagIBIG MCRF]
+    subgraph Cloud["<b>BizMaker Enterprise Cloud</b>"]
+        direction TB
+        BRIDGE[Bridge Agent Polyglot]
+        API{Cloud REST API Gateway}
+        AUTH[Email-Verified JWT Auth]
+        LOG[Attendance Log Ledger]
+        PAY[Statutory Payroll Engine]
+    end
 
-    %% External Uploads Security Layer
-    UPL[Manual/Legacy Uploads] -->|<b>Secure Validation</b><br/>25MB Limit + MIME Check| LOG
+    HW -->|Real-time Poll| BRIDGE
+    BRIDGE -->|"<b>Secure Push (HTTPS)</b>"| API
+    API --> AUTH
+    AUTH -->|Verified Access| LOG
+    
+    LOG -->|Feed| PAY
+    PAY -->|DOLE Compliance| SLIP[Individual Glassmorphic Payslips]
+    PAY -->|Audit Trail| REP[Premium Reports Suite]
+    PAY -->|Asset Shield| LOAN[Integrated Loan Auto-Deductions]
+    PAY -->|Gov Matrix| REMIT[PH Remittance: R3 / RF-1 / MCRF]
+    
+    %% Manual Layer
+    UPL[Legacy / Manual CSV Uploads] -->|"<b>Encryption Boundary</b><br/>MIME + Limit Verification"| LOG
 
     style HW fill:#002060,color:#fff
     style SLIP fill:#D4AF37,color:#fff
     style REP fill:#D4AF37,color:#fff
     style REMIT fill:#10b981,color:#fff
     style UPL fill:#ef4444,color:#fff
+    style BRIDGE fill:#6366f1,color:#fff
+    style AUTH fill:#10b981,color:#fff
 ```
 
 ### Fieldwork & Physical Attendance Overlap
 ```mermaid
 flowchart TD
-    START([Employee Day]) --> FW{Approved Fieldwork?}
-    FW -- No --> PHYS[Physical Logs Only]
-    FW -- Yes --> LOGS{Physical Logs Exist?}
+    START([Employee Day Horizon]) --> FW{Authorized Fieldwork?}
+    FW -- "No" --> PHYS[Standard Path: Physical Logs Only]
+    FW -- "Yes" --> LOGS{Hybrid Path: Physical Logs Check}
     
-    LOGS -- No --> BASE[8.0 Standard Hours]
-    LOGS -- Yes --> MERGE[Merge Effective Boundaries]
+    LOGS -- "None" --> BASE[DOLE Floor: 8.0 Standard Hours]
+    LOGS -- "Found" --> MERGE[Engine: Boundary Infiltration]
     
-    MERGE --> EFF["effective_in = max(check_in, shift_start)<br/>effective_out = max(check_out, fw_end)"]
-    EFF --> BREAKS[Subtract Unpaid Breaks ≥ 1h]
-    BREAKS --> CALC{Net Hours > 8.0?}
+    MERGE --> EFF["effective_in = min(check_in, shift_start)<br/>effective_out = max(check_out, fw_end)"]
+    EFF --> BREAKS[Statutory Deduction: Unpaid Breaks ≥ 1h]
+    BREAKS --> CALC{Net Duration > 8.0h?}
     
-    CALC -- Yes --> OT[Base 8h + Overtime]
-    CALC -- No --> FLOOR[Guaranteed 8.0h Floor]
+    CALC -- "Yes" --> OT[Base 8h + Premium Overtime]
+    CALC -- "No" --> FLOOR[Guaranteed 8.0h Baseline]
     
-    OT --> ND{Check-out ≥ 10 PM?}
-    FLOOR --> SAVE[Save DailyAttendance]
-    ND -- Yes --> NIGHT[+ Night Differential]
-    ND -- No --> SAVE
+    OT --> ND{Punch-out ≥ 10 PM?}
+    FLOOR --> SAVE[Persistence: DailyAttendance Ledger]
+    ND -- "Yes" --> NIGHT[+ Night Differential Multiplier]
+    ND -- "No" --> SAVE
     NIGHT --> SAVE
 
     style START fill:#002060,color:#fff
@@ -125,51 +148,61 @@ flowchart TD
     style OT fill:#D4AF37,color:#fff
     style NIGHT fill:#6366f1,color:#fff
     style FLOOR fill:#10b981,color:#fff
+    style PHYS fill:#f8f9fa,stroke:#002060
 ```
 
 ### Attendance Analytics Pipeline
 ```mermaid
 flowchart LR
-    UI[Period Selector] -->|Day/Week/Month/Year/Custom| DATES[start_date & end_date]
-    EMP[Employee Filter] -->|Multi-select + Position Search| IDS[employee_ids]
-    BR[Branch Filter] -->|Company Selection| BID[branch_id]
+    subgraph UI["<b>Premium Control Surface</b>"]
+        direction TB
+        P[Unified Period Selector] -->|ISO Range| DATES[start_date & end_date]
+        E[Searchable Multi-Employee Filter] -->|Collection| IDS[employee_ids]
+        B[Strategic Branch Selector] -->|Partition| BID[branch_id]
+    end
     
-    DATES --> API{API Endpoints}
+    DATES --> API{<b>Analytics Middleware</b>}
     IDS --> API
     BID --> API
     
-    API --> BIO[Biometric Logs]
-    API --> ATT[Attendance Summary]
-    API --> PER[Period Summary]
+    API --> BIO[Biometric Ingestion Trace]
+    API --> ATT[Daily Summary Ledger]
+    API --> PER[Period Performance Metrics]
     
-    PER --> METRICS["total_work_hours<br/>attendance_rate<br/>punctuality_rate<br/>overtime_hours<br/>late_count"]
+    PER --> METRICS["<b>KPI Grid</b><br/>total_work_hours<br/>attendance_rate<br/>punctuality_rate<br/>overtime_hours<br/>late_count"]
 
-    style UI fill:#002060,color:#fff
+    style UI fill:#f8f9fa,stroke:#002060
+    style P fill:#002060,color:#fff
+    style E fill:#002060,color:#fff
+    style B fill:#002060,color:#fff
     style METRICS fill:#D4AF37,color:#fff
     style PER fill:#10b981,color:#fff
+    style API fill:#6366f1,color:#fff
 ```
 
 ### Anomaly Detection Pipeline
 ```mermaid
 flowchart LR
-    PERIOD[Date Range] -->|start_date & end_date| RULES{Rule Engine}
-    EMP[Employee Filter] -->|Optional employee_ids| RULES
+    PERIOD[<b>Temporal Context</b>] -->|start_date & end_date| RULES{<b>Logic Heuristics</b>}
+    EMP[<b>Entity Context</b>] -->|employee_ids| RULES
     
-    RULES --> R1["Ghost OT\n>3h OT, no fieldwork"]
-    RULES --> R2["Missing Checkout\nClock-in, no clock-out"]
-    RULES --> R3["Excessive Late\n5+ lates in period"]
-    RULES --> R4["Rest Day Work\nNo approval"]
+    RULES --> R1["Ghost Overtime<br/>>3h OT, no OB/FW"]
+    RULES --> R2["Segment Fragmentation<br/>Missing Punctures"]
+    RULES --> R3["Chronic Lateness<br/>Threshold: 5+ events"]
+    RULES --> R4["Rest Day Boundary Violation<br/>Unauthorized Presence"]
     
-    R1 --> SEV{Severity}
+    R1 --> SEV{<b>Integrity Sort</b>}
     R2 --> SEV
     R3 --> SEV
     R4 --> SEV
     
-    SEV --> HIGH[High 🔴]
-    SEV --> MED[Medium 🟡]
-    SEV --> LOW[Low 🔵]
+    SEV --> HIGH[High Criticality 🔴]
+    SEV --> MED[Moderate Alert 🟡]
+    SEV --> LOW[Standard Variance 🔵]
 
     style RULES fill:#002060,color:#fff
+    style PERIOD fill:#f8f9fa,stroke:#002060
+    style EMP fill:#f8f9fa,stroke:#002060
     style HIGH fill:#ef4444,color:#fff
     style MED fill:#f59e0b,color:#fff
     style LOW fill:#6366f1,color:#fff
@@ -178,19 +211,19 @@ flowchart LR
 ### Labor Cost Aggregation (Stacked Analysis)
 ```mermaid
 flowchart TD
-    DB[(Payslip DB)] --> ATTR[Branch Attribution]
-    ATTR --> AAA[AAA and Co., CPAs]
-    ATTR --> BIZ[Bizmaker Consultancy]
-    ATTR --> GAM[Gamma Oracle Dimensions]
+    DB[(<b>Statutory Payslip DB</b>)] --> ATTR[Branch Attribution Filter]
+    ATTR --> AAA[<b>AAA and Co., CPAs</b>]
+    ATTR --> BIZ[<b>Bizmaker Consultancy</b>]
+    ATTR --> GAM[<b>Gamma Oracle Dimensions</b>]
     
-    AAA --> SUM[Annotate: Sum gross/net]
+    AAA --> SUM[Annotation: Sum Gross/Net]
     BIZ --> SUM
     GAM --> SUM
     
-    SUM --> TRUNC[TruncMonth: Group by Period]
-    TRUNC --> CHART[Stacked Bar Chart]
+    SUM --> TRUNC[TruncMonth: Period Grouping]
+    TRUNC --> CHART[Integrated Stacked Bar Chart]
     
-    subgraph View["Dashboard Visualization"]
+    subgraph View["<b>C-Level Visualization</b>"]
         CHART --> SEG1[AAA Segment]
         CHART --> SEG2[Bizmaker Segment]
         CHART --> SEG3[Gamma Segment]
@@ -199,46 +232,49 @@ flowchart TD
     style DB fill:#002060,color:#fff
     style SEG1 fill:#002060,color:#fff
     style SEG2 fill:#D4AF37,color:#fff
-    style SEG3 fill:#C0392B,color:#fff
+    style SEG3 fill:#ef4444,color:#fff
+    style CHART fill:#10b981,color:#fff
 ```
 
 ### Loan Lifecycle
 ```mermaid
 flowchart LR
-    CREATE[Create Loan] --> ACTIVE[Active]
-    ACTIVE --> PAYROLL{Payroll Run}
-    PAYROLL --> DEDUCT[Auto-Deduct from Net Pay]
-    DEDUCT --> BAL{Balance = 0?}
-    BAL -- Yes --> PAID[Fully Paid ✅]
-    BAL -- No --> ACTIVE
-    ACTIVE --> MANUAL[Manual Payment]
+    CREATE[<b>Originate Loan</b>] --> ACTIVE[<b>Active Balance</b>]
+    ACTIVE --> PAYROLL{<b>Payroll Run</b>}
+    PAYROLL --> DEDUCT[<b>Auto-Deduction</b>]
+    DEDUCT --> BAL{<b>Zero Balance?</b>}
+    BAL -- "Yes" --> PAID[<b>Fully Settled ✅</b>]
+    BAL -- "No" --> ACTIVE
+    ACTIVE --> MANUAL[<b>Manual Liquidation</b>]
     MANUAL --> BAL
-    ACTIVE --> CANCEL[Admin Cancel]
+    ACTIVE --> CANCEL[<b>Admin Void ❌</b>]
 
     style CREATE fill:#002060,color:#fff
     style PAID fill:#10b981,color:#fff
     style CANCEL fill:#ef4444,color:#fff
     style DEDUCT fill:#D4AF37,color:#fff
+    style ACTIVE fill:#f8f9fa,stroke:#002060
 ```
 
 ### Shift Scheduling Flow
 ```mermaid
 flowchart TD
-    SHIFT[Shift Templates] --> ASSIGN{Assignment}
-    ASSIGN --> SINGLE[Click Cell → Quick Assign]
-    ASSIGN --> BULK[Bulk Assign → Date Range + Employees]
+    SHIFT[<b>Shift Blueprints</b>] --> ASSIGN{<b>Allocation</b>}
+    ASSIGN --> SINGLE[<b>Quick Cell Tap</b><br/>Instant Assignment]
+    ASSIGN --> BULK[<b>Bulk Multi-Roster</b><br/>Range + Employee Group]
     
-    SINGLE --> ROSTER[Weekly Calendar Roster]
+    SINGLE --> ROSTER[<b>Dynamic Weekly Calendar</b>]
     BULK --> ROSTER
     
-    ROSTER --> ATT{Attendance Check}
-    ATT --> HAS["Employee has shift → Use shift times"]
-    ATT --> NO["No shift → Use global config defaults"]
+    ROSTER --> ATT{<b>Engine Verification</b>}
+    ATT --> HAS[<b>Assignment Detected</b><br/>Apply Blueprint Boundaries]
+    ATT --> NO[<b>No Assignment</b><br/>Fallback: Global Config Matrix]
 
     style SHIFT fill:#002060,color:#fff
     style ROSTER fill:#D4AF37,color:#fff
     style HAS fill:#10b981,color:#fff
     style NO fill:#6366f1,color:#fff
+    style ASSIGN fill:#f8f9fa,stroke:#002060
 ```
 
 ## Database Schema (ERD)
@@ -246,12 +282,14 @@ flowchart TD
 ```mermaid
 erDiagram
     DEPARTMENT ||--o{ EMPLOYEE : manages
+    BRANCH ||--o{ EMPLOYEE : "assigned to"
     
     EMPLOYEE ||--o{ ATTENDANCE_LOG : "generates punches"
     BIOMETRIC_DEVICE ||--o{ ATTENDANCE_LOG : records
     
     EMPLOYEE ||--o{ DAILY_ATTENDANCE : summarizes
     EMPLOYEE ||--o{ FIELDWORK_REQUEST : files
+    EMPLOYEE ||--o{ HALF_DAY_SCHEDULE : assigned
     
     PAYROLL_PERIOD ||--o{ PAYSLIP : contains
     EMPLOYEE ||--o{ PAYSLIP : receives
@@ -273,6 +311,7 @@ erDiagram
     
     DAILY_ATTENDANCE {
         date date PK
+        string status "PRESENT/ABSENT/FW/HOLIDAY/REST"
         datetime check_in
         datetime check_out
         float total_hours
@@ -280,34 +319,38 @@ erDiagram
         float night_diff_hours
         boolean is_fieldwork "OB Override"
         boolean is_late
-        int late_minutes
     }
     
     FIELDWORK_REQUEST {
         date start_date
         date end_date
-        string reason
+        time start_time "Optional Boundary"
+        time end_time "Optional Boundary"
         string status "PENDING/APPROVED/REJECTED"
+    }
+
+    HALF_DAY_SCHEDULE {
+        date date
+        string schedule_type "AM/PM"
     }
     
     PAYSLIP {
-        decimal gross_pay "Inclusive of Holiday/OT"
-        decimal net_pay "Take Home"
+        decimal gross_pay "Inclusive of Holiday/OT/Bonus"
+        decimal net_pay "Take Home Partition"
         decimal sss_deduction
         decimal philhealth_deduction
-        decimal withholding_tax "BIR Computed"
+        decimal pagibig_deduction
+        decimal withholding_tax "BIR 1601-C Computed"
+        decimal bonuses "PA/Christmas/Manual"
     }
 
     PAYROLL_CONFIGURATION {
         int cycle1_start_day "e.g. 6"
         int cycle1_end_day "e.g. 20"
-        int cycle2_start_day "e.g. 21"
-        int cycle2_end_day "e.g. 5"
         decimal sss_fixed_rate
         decimal philhealth_fixed_rate
-        string current_tax_table
-        boolean auto_calculate_13th_month "Toggle 13th month accrual"
-        boolean bonuses_available "Toggle all bonus processing"
+        boolean auto_calculate_13th_month "Accrual Toggle"
+        boolean bonuses_available "Bonus Global Kill-switch"
     }
 
     EMPLOYEE ||--o{ LOAN : borrows
@@ -320,7 +363,6 @@ erDiagram
     LOAN {
         string loan_type "CASH_BOND/SALARY/SSS/PAGIBIG"
         decimal principal_amount
-        decimal monthly_deduction
         decimal remaining_balance
         string status "ACTIVE/PAID/CANCELLED"
     }
@@ -329,40 +371,39 @@ erDiagram
         string name "Morning/Mid/Night"
         time start_time
         time end_time
-        time break_start
-        time break_end
         boolean is_night_shift
-        string color "Hex for calendar"
-    }
-
-    EMPLOYEE_SHIFT {
-        date date "Specific day"
-        int employee_id FK
-        int shift_id FK
+        string color "Glassmorphic Theme Color"
     }
 ```
 
 ## Technical Stack
 
 ### Backend
-- Framework: Django 5.2 (Python 3.12+)
-- API: Django REST Framework (DRF)
-- Authentication: JWT with Secure Blob Storage
-- Reports: fpdf2 (Official PDF Generation)
-- Database: PostgreSQL / SQLite
-- Integration: PyZK for Biometric Devices
+- **Engine**: Django 5.2 (Python 3.12.2 Enterprise)
+- **API Architecture**: Django REST Framework (DRF) with JWT
+- **Cloud Infrastructure**: Render (Web Services + Managed Postgre)
+- **Resilience**: Integrated Recovery & Import Restoration Logic
+- **Hardening**: AES-256 Field Encryption + 25MB Multi-Layer Guard
+- **Integration**: ZKAccess & PyZK Bridge Agent
 
 ### Frontend
-- Framework: Vue 3 (Composition API)
-- UI Library: Element Plus (Premium Glassmorphism)
-- Charts: ApexCharts (Vibrant Gradients)
-- State Management: Pinia
-- Icons: Element Plus Icons, Dicebear (Avatars)
-- Utilities: Axios, Dayjs
+- **Framework**: Vue 3.4 (Composition API)
+- **UI System**: Element Plus (Premium Glassmorphic Theme)
+- **Visualization**: ApexCharts Enterprise (Reactive Transitions)
+- **Deployment**: Vercel (Edge Functions + Global CDN)
+- **State Engine**: Pinia 2.1
+- **Icons**: Element Plus, Lucide Vue, Dicebear Initials
 
 ## Core Features
 
-### 1. Philippine Payroll Compliance
+### 1. Hybrid Cloud Edge Architecture
+- **Statutory Backend**: Django 5.2 hosted on **Render** (Auto-scaling, Global Edge).
+- **Glassmorphic Frontend**: Vue 3.4 hosted on **Vercel** (Global CDN, 100ms deployments).
+- **Persistent Data**: **Supabase PostgreSQL** for cloud-native performance.
+- **Enterprise Bridge**: Biometric records are pushed from private office networks to the cloud via the **BizMaker Multi-Platform Bridge Agent** using secured HTTPS endpoints.
+- **Resilience Layer**: The system features an integrated "Finalized Recovery" mechanism to restore mission-critical imports and logic automatically if repository corruption is detected.
+
+### 2. Philippine Payroll Compliance
 - **Payroll XLSX Export (Premium)**: Multi-sheet Excel workbook with live formulas, individual employee sheets, Master Summary, and dynamic statutory contribution lookups (SSS/PH/HDMF).
 - **Semi-Monthly Processing**: Configurable 15-day pay cycles (e.g., 6th–20th / 21st–5th) via the Global Configuration.
 - **Official BIR Reporting**: 
@@ -371,9 +412,10 @@ erDiagram
 - **Bank Transmittal (CSV)**: Grouped salary disbursement files with period identifiers.
 - **Holiday Pay Matrix**: Automated Regular (200%), Special (130%), and Rest Day premiums.
 - **Government Tables**: Automated SSS, PhilHealth, and Pag-IBIG deduction rules.
+- **Resilience Recovery**: The engine includes a surgical self-healing layer that restores missing Python imports and logic (e.g., `loans/views.py`, `shifts/views.py`) to prevent system-wide payroll failures during codebase migrations.
 - **Admin Configuration Toggles**:
-  - **Auto-accrue 14th–16th Month Pay**: 13th month is always computed (mandatory under PD 851). When toggled ON, all employees automatically receive 14th–16th month accrual and per-employee switches are locked. When OFF, admins can manually enable 14th–16th month per employee.
-  - **Enable Bonus Management**: When enabled, Perfect Attendance, Christmas, and manual bonuses are included in payroll processing. Disable to zero out all bonus calculations.
+  - **Auto-accrue 14th–16th Month Pay**: 13th month is always computed. When toggled ON, all employees receive 14th–16th month accrual and toggles are LOCKED.
+  - **Enable Bonus Management**: Master switch for Christmas, Perfect Attendance, and Manual bonuses.
 
 #### Admin Config Toggle Flow
 ```mermaid
@@ -433,6 +475,7 @@ flowchart TD
 - **Automated Break Subtraction**: Any active break defined in settings with a duration of 1 hour or more is automatically deducted from total hours if the employee's work interval overlaps with the break window.
 
 ### 6. Security & Reliability
+- **Email Verification Sign-In**: Login now uses a two-step flow (credentials + 6-digit email code) before JWT token issuance.
 - **Secure File Uploads**:
   - **Size Hardening**: Integrated 25MB enforced limit on both frontend (immediate feedback) and backend (security boundary).
   - **MIME & Extension Guards**: Strict verification of file contents for images (photos) and CSV/Excel (rosters).
@@ -480,13 +523,13 @@ flowchart TD
 - **Intelligent Switching**: Components and data views dynamically pivot between desktop tables and mobile-optimized cards based on viewport detection.
 - **Smart Data Culling**: Dense matrices like Payroll ledgers provide clear CTA redirects to the desktop view, ensuring mobile device rendering stays fast and lightweight.
 
-### 12. Real-Time Cost Dashboard
-- **Privacy Guard**: Sensitive financial metrics (Branch Overview, Labor Cost, YTD Summary) are protected by a password-reveal lock.
-  - **3-Hour Auto-Reveal**: Once unlocked, data stays revealed for 3 hours across sessions for convenience.
-  - **Manual Lock**: A dedicated 🔒 button in the header allows instant re-blurring at any time.
-  - **Branch Comparison**: Side-by-side cards comparing headcount, total gross, average salary, and overtime across branches.
-  - **Monthly Labor Cost Chart**: Interactive **Stacked Bar Chart** showing payroll expenses segmented by branch (`AAA`, `Bizmaker`, and `Gamma`) for clear financial attribution.
-  - **YTD Summary**: Gross, Net, Overtime, and Bonuses totals for the year.
+### 12. Real-Time Analytics & Privacy Guard
+- **Strategic Visualization**: Glassmorphic analytics suite with reactive-key transitions for Donut and Stacked Bar charts.
+- **Multi-Tenant Privacy Guard**: Sensitive financial metrics (Branch Overview, Labor Cost, YTD) are protected by a master password-reveal lock.
+  - **Session Persistence**: 3-hour auto-reveal window for convenience.
+  - **Instant Lockdown**: Dedicated 🔒 button for immediate re-blurring.
+  - **Branch Cost Attribution**: Interactive **Stacked Bar Chart** for multi-branch labor cost comparison (`AAA`, `Bizmaker`, and `Gamma`).
+  - **System Override Integration**: Secure password protection (`B!zm@k3r2026`) for critical data purging and system overrides.
 
 ### 13. Government Remittance Files
 - **SSS R3 Report**: CSV export with EE/ER shares and EC contributions.
@@ -506,6 +549,46 @@ flowchart TD
 - **Reactive Chart Re-renders**: Every analytics chart (Donut, Stacked Bar) utilizes a reactive-key strategy. When data loads, the chart performs a smooth "form-out" drawing animation rather than appearing statically.
 - **Glassmorphic Feedback**: Smoother transitions and hover states for all interactive KPI cards.
 
+### 16. Collaborator Invitations & Access Control
+- **Email Invitation Delivery**: Owners can invite collaborators by email and the system sends a join link with an invitation code.
+- **Quick Share Choices**: Owners can generate either a **shareable link** or a **standalone short invite code** from the Collaborators page.
+- **Join Link + Auth Gate**: Invite links route users to the collaborators page with prefilled code. If the recipient is not authenticated, they are redirected to Login or Register and then returned to complete acceptance.
+- **Fallback Invite Code**: Invitations always include a code that can be entered manually in-app.
+- **Permission Scoping**: Owners can assign module-level permissions (Employees, Attendance, Shifts, Payroll, Loans, Tax Tables, Settings).
+
+#### Collaborator Invite Journey
+```mermaid
+flowchart TD
+    OWNER[Payroll Owner] --> CHOICE{Invite Choice}
+    CHOICE --> EMAIL[Send Invitation by Email]
+    CHOICE --> CODE[Generate Code]
+    CHOICE --> LINK[Generate Link]
+
+    EMAIL --> SEND[Send Email via Gmail SMTP]
+    SEND --> RECIPIENT[Recipient Opens Join Link]
+    CODE --> MANUAL[Recipient Enters Code Manually]
+    LINK --> RECIPIENT
+
+    RECIPIENT --> AUTH{Authenticated?}
+    AUTH -- Yes --> COLLAB[Open Collaborators Page]
+    AUTH -- No --> LOGIN[Login or Register]
+    LOGIN --> COLLAB
+
+    COLLAB --> PREFILL[Invite Code Prefilled]
+    PREFILL --> ACCEPT[Accept Invitation]
+    MANUAL --> ACCEPT
+    ACCEPT --> ACCESS[Collaborator Access Created]
+
+    style OWNER fill:#002060,color:#fff
+    style CHOICE fill:#f8f9fa,stroke:#002060
+    style CODE fill:#D4AF37,color:#fff
+    style LINK fill:#6366f1,color:#fff
+    style SEND fill:#D4AF37,color:#fff
+    style LOGIN fill:#6366f1,color:#fff
+    style ACCEPT fill:#10b981,color:#fff
+    style ACCESS fill:#10b981,color:#fff
+```
+
 ## License
 
-Copyright (c) 2026 BizMaker. Private Repository.
+Copyright (c) 2026 BizMaker.
