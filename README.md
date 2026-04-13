@@ -10,7 +10,7 @@ BizMaker Payroll is a robust full-stack ecosystem that bridge-syncs real-time at
 
 ```mermaid
 flowchart TD
-    subgraph Init["<b>Phase 1: Secure Edge Onboarding</b>"]
+    subgraph Init["Phase 1: Secure Edge Onboarding"]
         direction TB
         s1[ ] --- Start((Start))
         Start --> Env{Env Check}
@@ -22,14 +22,13 @@ flowchart TD
         Auth -- Yes --> LoginCreds[Credential Check]
         Bypass --> LoginCreds
         Setup --> LoginCreds
-        LoginCreds --> OtpSend[Send Email Verification Code]
-        OtpSend --> OtpVerify{Code Valid?}
-        OtpVerify -- "No" --> Err2[/Reject Sign-in/]
-        OtpVerify -- "Yes" --> Login[Issue JWT Session]
-        Login --> Dashboard[Premium Analytics Dashboard]
+        LoginCreds --> Login{Credentials Valid?}
+        Login -- "No" --> Err2[/Reject Sign-in/]
+        Login -- "Yes" --> Session[Issue JWT Session]
+        Session --> Dashboard[Premium Analytics Dashboard]
     end
 
-    subgraph Ops["<b>Phase 2: Intelligent Ingestion</b>"]
+    subgraph Ops["Phase 2: Intelligent Ingestion"]
         direction TB
         s2[ ] --- Dashboard
         Dashboard --> Trigger[Sync Trigger]
@@ -47,11 +46,13 @@ flowchart TD
         Resting --> Rec
     end
 
-    subgraph Final["<b>Phase 3: Statutory & Financial Compliance</b>"]
+    subgraph Final["Phase 3: Statutory & Financial Compliance"]
         direction TB
         s3[ ] --- Rec
         Rec --> Cycle{Cycle Closure}
         Cycle -- Yes --> Engine[Engine: PH Compliance 5.2]
+        Engine --> EXCL[Payroll Exclusions Gate]
+        EXCL --> ELIG[Statutory Eligibility Ledger]
         Engine --> Tables{Grid Deductions}
         Tables --> Calc[Net Pay Calculation]
         Calc --> Gen[Secure Payslip Generation]
@@ -60,20 +61,20 @@ flowchart TD
         Export --> PDF[BIR 1601-C Suite]
         Export --> DAT[Alpha-List .DAT Validator]
         Export --> CSV[Bank Transmittal Suite]
-        Export --> REM[Statutory: R3 / RF-1 / MCRF]
+        Export --> REM["Statutory: R3 / RF-1 / MCRF"]
     end
 
-    %% Aesthetics
     classDef bizGold fill:#D4AF37,stroke:#002060,stroke-width:2px,color:#fff
     classDef bizNavy fill:none,stroke:#002060,stroke-width:2px,color:#002060
     classDef bizEmerald fill:#10b981,stroke:#002060,stroke-width:2px,color:#fff
     classDef process fill:#f8f9fa,stroke:#002060,stroke-width:1px
     classDef spacer fill:none,stroke:none,color:none
     
-    class Start,Export,Gen,XLSX,PDF,DAT,CSV,REM,Login bizGold
+    class Start,Export,Gen,XLSX,PDF,DAT,CSV,REM,Session bizGold
     class Init,Ops,Final bizNavy
     class Emp bizEmerald
-    class Env,Auth,Busy,SmartSync,Cycle,Tables,Mode,Hol,LoginCreds,OtpSend,OtpVerify process
+    class Env,Auth,Busy,SmartSync,Cycle,Tables,Mode,Hol,LoginCreds,Login process
+    class EXCL,ELIG process
     class s1,s2,s3 spacer
 ```
 
@@ -81,24 +82,23 @@ flowchart TD
 
 ### Attendance & Payroll Flow
 ```mermaid
-    flowchart TD
-    %% Cloud Bridge Sync
-    subgraph Local["<b>Edge Network (Private LAN)</b>"]
+flowchart TD
+    subgraph Local["Edge Network (Private LAN)"]
         direction LR
         HW[ZK Biometric Device]
     end
     
-    subgraph Cloud["<b>BizMaker Enterprise Cloud</b>"]
+    subgraph Cloud["BizMaker Enterprise Cloud"]
         direction TB
         BRIDGE[Bridge Agent Polyglot]
         API{Cloud REST API Gateway}
-        AUTH[Email-Verified JWT Auth]
+        AUTH[JWT Auth Gateway]
         LOG[Attendance Log Ledger]
         PAY[Statutory Payroll Engine]
     end
 
     HW -->|Real-time Poll| BRIDGE
-    BRIDGE -->|"<b>Secure Push (HTTPS)</b>"| API
+    BRIDGE -->|"Secure Push (HTTPS)"| API
     API --> AUTH
     AUTH -->|Verified Access| LOG
     
@@ -106,10 +106,9 @@ flowchart TD
     PAY -->|DOLE Compliance| SLIP[Individual Glassmorphic Payslips]
     PAY -->|Audit Trail| REP[Premium Reports Suite]
     PAY -->|Asset Shield| LOAN[Integrated Loan Auto-Deductions]
-    PAY -->|Gov Matrix| REMIT[PH Remittance: R3 / RF-1 / MCRF]
+    PAY -->|Gov Matrix| REMIT["PH Remittance: R3 / RF-1 / MCRF"]
     
-    %% Manual Layer
-    UPL[Legacy / Manual CSV Uploads] -->|"<b>Encryption Boundary</b><br/>MIME + Limit Verification"| LOG
+    UPL["Legacy / Manual CSV Uploads"] -->|"Encryption Boundary\\nMIME + Limit Verification"| LOG
 
     style HW fill:#002060,color:#fff
     style SLIP fill:#D4AF37,color:#fff
@@ -127,18 +126,18 @@ flowchart TD
     FW -- "No" --> PHYS[Standard Path: Physical Logs Only]
     FW -- "Yes" --> LOGS{Hybrid Path: Physical Logs Check}
     
-    LOGS -- "None" --> BASE[DOLE Floor: 8.0 Standard Hours]
+    LOGS -- "None" --> BASE["DOLE Floor\n8.0 Standard Hours"]
     LOGS -- "Found" --> MERGE[Engine: Boundary Infiltration]
     
-    MERGE --> EFF["effective_in = min(check_in, shift_start)<br/>effective_out = max(check_out, fw_end)"]
-    EFF --> BREAKS[Statutory Deduction: Unpaid Breaks ≥ 1h]
+    MERGE --> EFF["effective_in = min(check_in, shift_start)\\neffective_out = max(check_out, fw_end)"]
+    EFF --> BREAKS["Statutory Deduction\nUnpaid Breaks ≥ 1h"]
     BREAKS --> CALC{Net Duration > 8.0h?}
     
     CALC -- "Yes" --> OT[Base 8h + Premium Overtime]
-    CALC -- "No" --> FLOOR[Guaranteed 8.0h Baseline]
+    CALC -- "No" --> FLOOR["Guaranteed\n8.0h Baseline"]
     
     OT --> ND{Punch-out ≥ 10 PM?}
-    FLOOR --> SAVE[Persistence: DailyAttendance Ledger]
+    FLOOR --> SAVE["Persistence\nDailyAttendance Ledger"]
     ND -- "Yes" --> NIGHT[+ Night Differential Multiplier]
     ND -- "No" --> SAVE
     NIGHT --> SAVE
@@ -154,28 +153,30 @@ flowchart TD
 ### Attendance Analytics Pipeline
 ```mermaid
 flowchart LR
-    subgraph UI["<b>Premium Control Surface</b>"]
+    subgraph UI["Premium Control Surface"]
         direction TB
         P[Unified Period Selector] -->|ISO Range| DATES[start_date & end_date]
         E[Searchable Multi-Employee Filter] -->|Collection| IDS[employee_ids]
         B[Strategic Branch Selector] -->|Partition| BID[branch_id]
     end
     
-    DATES --> API{<b>Analytics Middleware</b>}
+    DATES --> API{Analytics Middleware}
     IDS --> API
     BID --> API
     
     API --> BIO[Biometric Ingestion Trace]
     API --> ATT[Daily Summary Ledger]
     API --> PER[Period Performance Metrics]
-    
-    PER --> METRICS["<b>KPI Grid</b><br/>total_work_hours<br/>attendance_rate<br/>punctuality_rate<br/>overtime_hours<br/>late_count"]
+
+    PER --> PUNC["Punctuality =\\non-time present /\\n(present + absent)"]
+    PER --> METRICS["KPI Grid\\ntotal_work_hours\\nattendance_rate\\npunctuality_rate\\novertime_hours\\nlate_count\\nabsent_days"]
 
     style UI fill:#f8f9fa,stroke:#002060
     style P fill:#002060,color:#fff
     style E fill:#002060,color:#fff
     style B fill:#002060,color:#fff
     style METRICS fill:#D4AF37,color:#fff
+    style PUNC fill:#10b981,color:#fff
     style PER fill:#10b981,color:#fff
     style API fill:#6366f1,color:#fff
 ```
@@ -183,15 +184,15 @@ flowchart LR
 ### Anomaly Detection Pipeline
 ```mermaid
 flowchart LR
-    PERIOD[<b>Temporal Context</b>] -->|start_date & end_date| RULES{<b>Logic Heuristics</b>}
-    EMP[<b>Entity Context</b>] -->|employee_ids| RULES
+    PERIOD[Temporal Context] -->|start_date & end_date| RULES{Logic Heuristics}
+    EMP[Entity Context] -->|employee_ids| RULES
     
-    RULES --> R1["Ghost Overtime<br/>>3h OT, no OB/FW"]
-    RULES --> R2["Segment Fragmentation<br/>Missing Punctures"]
-    RULES --> R3["Chronic Lateness<br/>Threshold: 5+ events"]
-    RULES --> R4["Rest Day Boundary Violation<br/>Unauthorized Presence"]
+    RULES --> R1["Ghost Overtime\\n>3h OT, no OB/FW"]
+    RULES --> R2["Segment Fragmentation\\nMissing Punctures"]
+    RULES --> R3["Chronic Lateness\\nThreshold: 5+ events"]
+    RULES --> R4["Rest Day Boundary Violation\\nUnauthorized Presence"]
     
-    R1 --> SEV{<b>Integrity Sort</b>}
+    R1 --> SEV{Integrity Sort}
     R2 --> SEV
     R3 --> SEV
     R4 --> SEV
@@ -211,19 +212,19 @@ flowchart LR
 ### Labor Cost Aggregation (Stacked Analysis)
 ```mermaid
 flowchart TD
-    DB[(<b>Statutory Payslip DB</b>)] --> ATTR[Branch Attribution Filter]
-    ATTR --> AAA[<b>AAA and Co., CPAs</b>]
-    ATTR --> BIZ[<b>Bizmaker Consultancy</b>]
-    ATTR --> GAM[<b>Gamma Oracle Dimensions</b>]
+    DB[(Statutory Payslip DB)] --> ATTR[Branch Attribution Filter]
+    ATTR --> AAA[AAA and Co., CPAs]
+    ATTR --> BIZ[Bizmaker Consultancy]
+    ATTR --> GAM[Gamma Oracle Dimensions]
     
-    AAA --> SUM[Annotation: Sum Gross/Net]
+    AAA --> SUM["Annotation: Sum Gross/Net"]
     BIZ --> SUM
     GAM --> SUM
     
     SUM --> TRUNC[TruncMonth: Period Grouping]
     TRUNC --> CHART[Integrated Stacked Bar Chart]
     
-    subgraph View["<b>C-Level Visualization</b>"]
+    subgraph View["C-Level Visualization"]
         CHART --> SEG1[AAA Segment]
         CHART --> SEG2[Bizmaker Segment]
         CHART --> SEG3[Gamma Segment]
@@ -239,15 +240,15 @@ flowchart TD
 ### Loan Lifecycle
 ```mermaid
 flowchart LR
-    CREATE[<b>Originate Loan</b>] --> ACTIVE[<b>Active Balance</b>]
-    ACTIVE --> PAYROLL{<b>Payroll Run</b>}
-    PAYROLL --> DEDUCT[<b>Auto-Deduction</b>]
-    DEDUCT --> BAL{<b>Zero Balance?</b>}
-    BAL -- "Yes" --> PAID[<b>Fully Settled ✅</b>]
+    CREATE[Originate Loan] --> ACTIVE[Active Balance]
+    ACTIVE --> PAYROLL{Payroll Run}
+    PAYROLL --> DEDUCT[Auto-Deduction]
+    DEDUCT --> BAL{Zero Balance?}
+    BAL -- "Yes" --> PAID[Fully Settled ✅]
     BAL -- "No" --> ACTIVE
-    ACTIVE --> MANUAL[<b>Manual Liquidation</b>]
+    ACTIVE --> MANUAL[Manual Liquidation]
     MANUAL --> BAL
-    ACTIVE --> CANCEL[<b>Admin Void ❌</b>]
+    ACTIVE --> CANCEL[Admin Void ❌]
 
     style CREATE fill:#002060,color:#fff
     style PAID fill:#10b981,color:#fff
@@ -259,19 +260,23 @@ flowchart LR
 ### Shift Scheduling Flow
 ```mermaid
 flowchart TD
-    SHIFT[<b>Shift Blueprints</b>] --> ASSIGN{<b>Allocation</b>}
-    ASSIGN --> SINGLE[<b>Quick Cell Tap</b><br/>Instant Assignment]
-    ASSIGN --> BULK[<b>Bulk Multi-Roster</b><br/>Range + Employee Group]
+    SHIFT[Shift Blueprints] --> ASSIGN{Allocation}
+    ASSIGN --> SINGLE[Quick Cell Tap\\nInstant Assignment]
+    ASSIGN --> BULK[Bulk Multi-Roster\\nRange + Employee Group]
+    ASSIGN --> MGMT[Management Calendar\\nDate-Level Operations]
     
-    SINGLE --> ROSTER[<b>Dynamic Weekly Calendar</b>]
+    SINGLE --> ROSTER[Dynamic Weekly Calendar]
     BULK --> ROSTER
+    MGMT --> HALF[Set All Employees Half-Day\\nChoose AM or PM]
+    HALF --> ROSTER
     
-    ROSTER --> ATT{<b>Engine Verification</b>}
-    ATT --> HAS[<b>Assignment Detected</b><br/>Apply Blueprint Boundaries]
-    ATT --> NO[<b>No Assignment</b><br/>Fallback: Global Config Matrix]
+    ROSTER --> ATT{Engine Verification}
+    ATT --> HAS[Assignment Detected\\nApply Blueprint Boundaries]
+    ATT --> NO[No Assignment\\nFallback: Global Config Matrix]
 
     style SHIFT fill:#002060,color:#fff
     style ROSTER fill:#D4AF37,color:#fff
+    style HALF fill:#f59e0b,color:#fff
     style HAS fill:#10b981,color:#fff
     style NO fill:#6366f1,color:#fff
     style ASSIGN fill:#f8f9fa,stroke:#002060
@@ -379,19 +384,20 @@ erDiagram
 ## Technical Stack
 
 ### Backend
-- **Engine**: Django 5.2 (Python 3.12.2 Enterprise)
+- **Engine**: Django 5.2.12 on Python 3.12
 - **API Architecture**: Django REST Framework (DRF) with JWT
-- **Cloud Infrastructure**: Render (Web Services + Managed Postgre)
+- **Cloud Infrastructure**: Render web services with PostgreSQL and Redis
 - **Resilience**: Integrated Recovery & Import Restoration Logic
 - **Hardening**: AES-256 Field Encryption + 25MB Multi-Layer Guard
 - **Integration**: ZKAccess & PyZK Bridge Agent
 
 ### Frontend
-- **Framework**: Vue 3.4 (Composition API)
+- **Framework**: Vue 3.5 with Composition API
 - **UI System**: Element Plus (Premium Glassmorphic Theme)
 - **Visualization**: ApexCharts Enterprise (Reactive Transitions)
-- **Deployment**: Vercel (Edge Functions + Global CDN)
-- **State Engine**: Pinia 2.1
+- **Deployment**: Vercel with hashed assets and stale-chunk auto-recovery
+- **State Engine**: Pinia 3
+- **Bundler**: Vite 8
 - **Icons**: Element Plus, Lucide Vue, Dicebear Initials
 
 ## Core Features
@@ -399,7 +405,7 @@ erDiagram
 ### 1. Hybrid Cloud Edge Architecture
 - **Statutory Backend**: Django 5.2 hosted on **Render** (Auto-scaling, Global Edge).
 - **Glassmorphic Frontend**: Vue 3.4 hosted on **Vercel** (Global CDN, 100ms deployments).
-- **Persistent Data**: **Supabase PostgreSQL** for cloud-native performance.
+- **Persistent Data**: **PostgreSQL** for cloud-native transactional storage.
 - **Enterprise Bridge**: Biometric records are pushed from private office networks to the cloud via the **BizMaker Multi-Platform Bridge Agent** using secured HTTPS endpoints.
 - **Resilience Layer**: The system features an integrated "Finalized Recovery" mechanism to restore mission-critical imports and logic automatically if repository corruption is detected.
 
@@ -414,7 +420,7 @@ erDiagram
 - **Government Tables**: Automated SSS, PhilHealth, and Pag-IBIG deduction rules.
 - **Resilience Recovery**: The engine includes a surgical self-healing layer that restores missing Python imports and logic (e.g., `loans/views.py`, `shifts/views.py`) to prevent system-wide payroll failures during codebase migrations.
 - **Admin Configuration Toggles**:
-  - **Auto-accrue 14th–16th Month Pay**: 13th month is always computed. When toggled ON, all employees receive 14th–16th month accrual and toggles are LOCKED.
+    - **Auto-accrue 14th–16th Month Pay**: 13th month accrues from earned basic pay across the year and is released during December payroll periods. When toggled ON, all employees receive 14th–16th accrual eligibility and toggles are LOCKED.
   - **Enable Bonus Management**: Master switch for Christmas, Perfect Attendance, and Manual bonuses.
 
 #### Admin Config Toggle Flow
@@ -422,28 +428,34 @@ erDiagram
 flowchart TD
     CFG[Admin Settings Panel] --> A13{Auto-accrue 14–16th?}
     
-    A13 -- ON --> LOCK["All employees: 14th/15th/16th = ON<br/>Per-employee toggles LOCKED"]
-    A13 -- OFF --> MANUAL["Per-employee toggles UNLOCKED<br/>All set to OFF by default"]
-    MANUAL --> ADMIN["Admin can manually enable<br/>14th/15th/16th per employee"]
+    A13 -- ON --> LOCK["All employees: 14th/15th/16th = ON\\nPer-employee toggles LOCKED"]
+    A13 -- OFF --> MANUAL["Per-employee toggles UNLOCKED\\nAll set to OFF by default"]
+    MANUAL --> ADMIN["Admin can manually enable\\n14th/15th/16th per employee"]
     
     LOCK --> ENGINE[Payroll Engine]
     ADMIN --> ENGINE
     
     CFG --> BONUS{Enable Bonus Mgmt?}
-    BONUS -- ON --> BPROC["Perfect Attendance + Christmas<br/>+ Manual bonuses processed"]
+    BONUS -- ON --> BPROC["Perfect Attendance + Christmas\\n+ Manual bonuses processed"]
     BONUS -- OFF --> BSKIP["All bonus calculations = ₱0"]
     
     BPROC --> ENGINE
     BSKIP --> ENGINE
     
-    ENGINE --> MANDATORY["13th Month: ALWAYS computed<br/>(PD 851 - Mandatory)"]
-    ENGINE --> SLIP[Payslip Generated]
+    ENGINE --> ACCRUAL["13th Month Accrual\\n= earned basic pay / 12"]
+    ACCRUAL --> DEC{December Payroll Period?}
+    DEC -- Yes --> RELEASE["Release 13th Month\\n+ optional 14th–16th"]
+    DEC -- No --> HOLD[Regular Payslip Only]
+    RELEASE --> SLIP[Payslip Generated]
+    HOLD --> SLIP
 
     style CFG fill:#002060,color:#fff
-    style MANDATORY fill:#10b981,color:#fff
+    style ACCRUAL fill:#10b981,color:#fff
+    style RELEASE fill:#D4AF37,color:#fff
     style LOCK fill:#D4AF37,color:#fff
     style SLIP fill:#D4AF37,color:#fff
     style BSKIP fill:#ef4444,color:#fff
+    style HOLD fill:#f8f9fa,stroke:#002060
 ```
 
 ### 2. Smart Biometric Integration
@@ -457,6 +469,7 @@ flowchart TD
 - **Branch-Level Organization**: A new dedicated Branch Filter allows admins to "sort" all attendance data by company (`AAA and Co., CPAs`, `Bizmaker Consultancy, Inc.`, or `Gamma Oracle Dimensions Inc.`), instantly updating logs and summaries.
 - **Multi-Select Employee Filter**: Searchable dropdown supporting filtering by employee name or position. Select multiple employees to generate custom group analytics.
 - **Period Summary Dashboard**: Aggregated metrics including total work hours, attendance rate, punctuality rate, overtime, late counts, and undertime — all dynamically scoped to the selected period.
+- **Punctuality Formula**: Punctuality now reflects both lateness and absences. The rate is calculated from on-time present days over total expected workdays (`present + absent`).
 - **Real-Time Period Capping**: If the selected month or year hasn't ended, the backend caps expected workdays to today's date, preventing inflated absence counts. A brief notification informs the admin that figures are still updating.
 - **Dynamic Dashboard KPIs**: The "Logs" stat card on the main dashboard dynamically updates its label and count based on the selected trend period (Today/This Week/This Month/This Year).
 
@@ -475,7 +488,8 @@ flowchart TD
 - **Automated Break Subtraction**: Any active break defined in settings with a duration of 1 hour or more is automatically deducted from total hours if the employee's work interval overlaps with the break window.
 
 ### 6. Security & Reliability
-- **Email Verification Sign-In**: Login now uses a two-step flow (credentials + 6-digit email code) before JWT token issuance.
+- **Direct JWT Sign-In**: Login uses credential-based JWT token issuance through the standard `/api/token/` endpoint — no email OTP required.
+- **Email-Verified Sign-Up**: New account creation requires a 6-digit email verification code. Registration data is held in a `PendingRegistration` record until the code is confirmed, preventing unverified accounts from being created.
 - **Secure File Uploads**:
   - **Size Hardening**: Integrated 25MB enforced limit on both frontend (immediate feedback) and backend (security boundary).
   - **MIME & Extension Guards**: Strict verification of file contents for images (photos) and CSV/Excel (rosters).
@@ -484,6 +498,7 @@ flowchart TD
 - **Authenticated Exports**: All reports secured behind JWT, preventing unauthorized data access.
 - **Encrypted Comm Keys**: AES-256 encryption for hardware communication keys stored in the database.
 - **Defensive Downloads**: Blob-based download logic with race-condition protection.
+- **Frontend Deploy Recovery**: The SPA auto-reloads once when a stale Vite chunk is requested after a new deploy, reducing blank-screen failures.
 - **Secure Password Change**: Verified identity check requiring current password for admin password resets.
 - **Production Validation**: Enforced environment safety checks ensuring all encryption keys are present and valid before the system starts.
 - **API Throttling**: Protection against brute-force and scraping.
@@ -500,9 +515,16 @@ flowchart TD
 - **Shift Templates**: Create reusable shifts (Morning, Mid, Night, Custom) with start/end times, break windows, and color coding.
 - **Weekly Calendar Roster**: Visual grid showing all employees × 7 days. Click any cell to quick-assign a shift.
 - **Bulk Assignment**: Assign a shift to multiple employees across a date range, with automatic rest-day skipping.
+- **Management Calendar Actions**: Click any date in the management calendar to open day-level controls and summaries.
+- **All-Employees Half-Day Assignment**: From the date drawer, apply half-day to all listed employees and choose the time slot (`AM` or `PM`) before saving.
 - **Global Fallback**: If no shift is assigned, the system falls back to the global `standard_shift_start/end` (8:30 AM to 5:30 PM default) from PayrollConfiguration.
 
-### 9. Anomaly Detection
+### 9. Payroll Exclusions in Payroll Center
+- **Centralized Exclusions Panel**: Payroll Exclusions now live in Payroll Center above Statutory Eligibility for faster payroll-run validation.
+- **Branch-Scoped Visibility**: Exclusions list follows the selected branch context.
+- **Post-Processing Refresh**: Exclusions auto-refresh after payroll processing to keep the table synchronized with the latest server state.
+
+### 10. Anomaly Detection
   - **Zero AI / Zero RAM Overhead**: Pure SQL queries and threshold rules — no machine learning libraries.
   - **Unified Filtering**: Optimized to support the same date range and multi-employee filters as the rest of the analytics suite.
   - **Ghost OT Detection**: Flags overtime > 3 hours on days with no approved fieldwork.
@@ -511,19 +533,22 @@ flowchart TD
   - **Unapproved Rest Day Work**: Flags work logged on rest days without fieldwork approval.
   - **Severity Badges**: High 🔴, Medium 🟡, Low 🔵 — sorted by priority.
 
-### 10. Payroll Simulation Mode
+### 11. Payroll Simulation Mode
 - **Dry-Run Engine**: Preview payroll results without saving — no data is committed.
 - **Salary Adjustments**: Apply percentage-based salary changes to see their impact.
 - **Bonus Overrides**: Test bonus amounts before committing.
+- **Fully-Absent Protection**: If an employee earns no basic pay in the selected period, the simulation keeps gross, net, and statutory deductions at `₱0.00` instead of producing negative net pay.
+- **December-Only 13th Month Release**: Accrual is tracked from earned basic pay, but simulated payout only appears in December payroll periods.
+- **SC Preview Column**: The simulation table groups SSS, PhilHealth, and Pag-IBIG into a single **SC (Statutory Contribution)** view for faster review.
 - **Comparison View**: Side-by-side simulated payslips with totals.
 
-### 11. Responsive Mobile Architecture
+### 12. Responsive Mobile Architecture
 - **Dedicated Mobile UX**: Complete parallel mobile interface utilizing dynamically injected wrapper components, preserving the integrity of the desktop UI.
 - **Floating Glassmorphic Navbar**: Enhanced bottom navigation matching premium native mobile app paradigms.
 - **Intelligent Switching**: Components and data views dynamically pivot between desktop tables and mobile-optimized cards based on viewport detection.
 - **Smart Data Culling**: Dense matrices like Payroll ledgers provide clear CTA redirects to the desktop view, ensuring mobile device rendering stays fast and lightweight.
 
-### 12. Real-Time Analytics & Privacy Guard
+### 13. Real-Time Analytics & Privacy Guard
 - **Strategic Visualization**: Glassmorphic analytics suite with reactive-key transitions for Donut and Stacked Bar charts.
 - **Multi-Tenant Privacy Guard**: Sensitive financial metrics (Branch Overview, Labor Cost, YTD) are protected by a master password-reveal lock.
   - **Session Persistence**: 3-hour auto-reveal window for convenience.
@@ -531,7 +556,7 @@ flowchart TD
   - **Branch Cost Attribution**: Interactive **Stacked Bar Chart** for multi-branch labor cost comparison (`AAA`, `Bizmaker`, and `Gamma`).
   - **System Override Integration**: Secure password protection (`B!zm@k3r2026`) for critical data purging and system overrides.
 
-### 13. Government Remittance Files
+### 14. Government Remittance Files
 - **SSS R3 Report**: CSV export with EE/ER shares and EC contributions.
 - **PhilHealth RF-1**: CSV export with premium splits per employee.
 - **Pag-IBIG MCRF**: CSV export with contribution breakdowns.
@@ -539,24 +564,83 @@ flowchart TD
 - **Automatic Branch Cost Comparison**: Side-by-side analytics for `AAA and Co., CPAs`, `Bizmaker Consultancy, Inc.`, and `Gamma Oracle Dimensions Inc.`, including headcount, average salary, and budget utilization.
 - **Monthly Total Aggregation**: Combines both semi-monthly cycles into a single remittance file, aggregating per employee.
 
-### 14. Global Holiday Synchronization
+### 15. Global Holiday Synchronization
 - **Nager.Date API Integration**: Automatically synchronizes official Philippine public holidays for any given year into the local database.
 - **Holy Week Readiness**: Native handling for Maundy Thursday, Good Friday, and Black Saturday.
 - **"Resting" Logic**: Employees are automatically categorized as "Resting" instead of "Absent" on official holidays, preventing false-positive attendance reports.
 - **One-Click Sync**: Admin-accessible sync button in settings to pull latest government-declared dates.
 
-### 15. Premium Micro-Animations
-- **Reactive Chart Re-renders**: Every analytics chart (Donut, Stacked Bar) utilizes a reactive-key strategy. When data loads, the chart performs a smooth "form-out" drawing animation rather than appearing statically.
-- **Glassmorphic Feedback**: Smoother transitions and hover states for all interactive KPI cards.
+### 16. Motion Strategy
+- **Reactive Chart Re-renders**: Analytics charts (Donut, Stacked Bar) keep their controlled load animations because they help data readability.
+- **Reduced Motion UI**: Hover lift effects were removed from tabs, cards, and standard controls so the interface stays visually stable during navigation.
 
-### 16. Collaborator Invitations & Access Control
+### 17. Employee Registry & Branch Operations
+- **Bulk Branch Transfer**: Move selected employees to another branch from the registry using a single bulk action.
+- **Same-Branch Guard**: Employees already assigned to the target branch are skipped automatically to prevent no-op moves.
+- **Registry Pagination**: The Employees registry paginates at 20 records per page for cleaner browsing and faster scanning.
+
+#### Employee Branch Transfer Flow
+```mermaid
+flowchart LR
+    SELECT[Select Employees] --> TARGET[Choose Target Branch]
+    TARGET --> CHECK{Already in Target Branch?}
+    CHECK -- Yes --> SKIP[Skip Those Employees]
+    CHECK -- No --> CONFIRM[Confirm Bulk Move]
+    SKIP --> CONFIRM
+    CONFIRM --> API[POST /api/employees/bulk-move-branch/]
+    API --> UPDATE[Update employee.branch for eligible rows]
+    UPDATE --> REFRESH[Refresh Registry + Keep 20-row Pages]
+
+    style SELECT fill:#002060,color:#fff
+    style TARGET fill:#6366f1,color:#fff
+    style CHECK fill:#f8f9fa,stroke:#002060
+    style SKIP fill:#f59e0b,color:#fff
+    style CONFIRM fill:#D4AF37,color:#fff
+    style API fill:#10b981,color:#fff
+    style UPDATE fill:#10b981,color:#fff
+    style REFRESH fill:#002060,color:#fff
+```
+
+### 18. Collaborator Invitations & Access Control
 - **Email Invitation Delivery**: Owners can invite collaborators by email and the system sends a join link with an invitation code.
 - **Quick Share Choices**: Owners can generate either a **shareable link** or a **standalone short invite code** from the Collaborators page.
 - **Join Link + Auth Gate**: Invite links route users to the collaborators page with prefilled code. If the recipient is not authenticated, they are redirected to Login or Register and then returned to complete acceptance.
 - **Fallback Invite Code**: Invitations always include a code that can be entered manually in-app.
 - **Permission Scoping**: Owners can assign module-level permissions (Employees, Attendance, Shifts, Payroll, Loans, Tax Tables, Settings).
 
-#### Collaborator Invite Journey
+#### Sign-Up Email Verification Flow
+```mermaid
+flowchart TD
+    VISITOR[New User] --> FORM[Fill Sign-Up Form\nUsername · Email · Password]
+    FORM --> SEND[Request Verification Code]
+    SEND --> API{POST /api/auth/\nrequest-registration-code/}
+    API --> EXIST{Username or\nEmail Already Taken?}
+    EXIST -- Yes --> ERR1[/Return 400 – Conflict/]
+    EXIST -- No --> PEND[Save PendingRegistration\nwith hashed password]
+    PEND --> EMAIL[Send 6-Digit Code\nvia Email]
+    EMAIL --> STEP2[User Enters Code]
+    STEP2 --> VERIFY{POST /api/auth/\nverify-registration-code/}
+    VERIFY --> CODE{Code Valid\n& Not Expired?}
+    CODE -- No --> ERR2[/Return 400 – Invalid Code/]
+    CODE -- Yes --> CREATE[Create User + Profile]
+    CREATE --> CONSUME[Mark Code Consumed\nDelete PendingRegistration]
+    CONSUME --> DONE[201 – Account Created]
+    DONE --> LOGIN[Redirect to Login]
+    LOGIN --> JWT[Issue JWT via /api/token/]
+
+    style VISITOR fill:#002060,color:#fff
+    style PEND fill:#6366f1,color:#fff
+    style EMAIL fill:#D4AF37,color:#fff
+    style CREATE fill:#10b981,color:#fff
+    style DONE fill:#10b981,color:#fff
+    style ERR1 fill:#ef4444,color:#fff
+    style ERR2 fill:#ef4444,color:#fff
+    style JWT fill:#D4AF37,color:#fff
+    style API fill:#f8f9fa,stroke:#002060
+    style VERIFY fill:#f8f9fa,stroke:#002060
+```
+
+### Collaborator Invite Journey
 ```mermaid
 flowchart TD
     OWNER[Payroll Owner] --> CHOICE{Invite Choice}
@@ -591,4 +675,4 @@ flowchart TD
 
 ## License
 
-Copyright (c) 2026 BizMaker.
+Copyright (c) 2026 BizMaker. 
