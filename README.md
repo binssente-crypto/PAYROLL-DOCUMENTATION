@@ -578,6 +578,7 @@ flowchart TD
 - **Bulk Branch Transfer**: Move selected employees to another branch from the registry using a single bulk action.
 - **Same-Branch Guard**: Employees already assigned to the target branch are skipped automatically to prevent no-op moves.
 - **Registry Pagination**: The Employees registry paginates at 20 records per page for cleaner browsing and faster scanning.
+- **Delete Loading Guards**: Both single-row and bulk delete actions display loading spinners and disable all delete controls while the API call is in flight, preventing duplicate deletion requests from repeated clicks.
 
 #### Employee Branch Transfer Flow
 ```mermaid
@@ -599,6 +600,39 @@ flowchart LR
     style API fill:#10b981,color:#fff
     style UPDATE fill:#10b981,color:#fff
     style REFRESH fill:#002060,color:#fff
+```
+
+#### Employee Delete Safety Flow
+```mermaid
+flowchart TD
+    ACTION{Delete Action} --> SINGLE[Single Row Delete]
+    ACTION --> BULK[Bulk Delete Selected]
+
+    SINGLE --> GUARD1{Already Deleting?}
+    GUARD1 -- Yes --> BLOCK1[Action Blocked\nButton Disabled + Spinner]
+    GUARD1 -- No --> CONFIRM1[Confirm Dialog]
+    CONFIRM1 --> SPIN1[Show Row Spinner\nDisable All Delete Controls]
+    SPIN1 --> API1[DELETE /api/employees/:id/]
+    API1 --> CLEAN1[Clear Loading State\nDeselect Row\nRefresh List]
+
+    BULK --> GUARD2{Already Deleting?}
+    GUARD2 -- Yes --> BLOCK2[Action Blocked\nButton Disabled + Spinner]
+    GUARD2 -- No --> CONFIRM2[Confirm Dialog]
+    CONFIRM2 --> SPIN2[Show Bulk Spinner\nDisable All Delete Controls]
+    SPIN2 --> API2[DELETE Each Selected Employee]
+    API2 --> CLEAN2[Clear Loading State\nClear Selection\nRefresh List]
+
+    style ACTION fill:#002060,color:#fff
+    style BLOCK1 fill:#ef4444,color:#fff
+    style BLOCK2 fill:#ef4444,color:#fff
+    style SPIN1 fill:#f59e0b,color:#fff
+    style SPIN2 fill:#f59e0b,color:#fff
+    style API1 fill:#10b981,color:#fff
+    style API2 fill:#10b981,color:#fff
+    style CLEAN1 fill:#D4AF37,color:#fff
+    style CLEAN2 fill:#D4AF37,color:#fff
+    style CONFIRM1 fill:#f8f9fa,stroke:#002060
+    style CONFIRM2 fill:#f8f9fa,stroke:#002060
 ```
 
 ### 18. Collaborator Invitations & Access Control
@@ -675,4 +709,4 @@ flowchart TD
 
 ## License
 
-Copyright (c) 2026 BizMaker. 
+Copyright (c) 2026 BizMaker.
