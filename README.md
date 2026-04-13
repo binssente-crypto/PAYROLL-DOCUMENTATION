@@ -441,6 +441,55 @@ erDiagram
   | Special + Rest OT + NSD | 1.95× | +₱19.50 | ₱214.50 |
   | Double Holiday OT + NSD | 3.90× | +₱39.00 | ₱429.00 |
 
+#### DOLE Pay Stacking Engine
+```mermaid
+flowchart TD
+    DAY([Employee Work Day]) --> TYPE{Day Type?}
+    
+    TYPE -- "Normal" --> BASE1["Day Rate = 1.00×"]
+    TYPE -- "Rest Day" --> BASE2["Day Rate = 1.30×"]
+    TYPE -- "Special Holiday" --> BASE3["Day Rate = 1.30×"]
+    TYPE -- "Special + Rest" --> BASE4["Day Rate = 1.50×"]
+    TYPE -- "Regular Holiday" --> BASE5["Day Rate = 2.00×"]
+    TYPE -- "Holiday + Rest" --> BASE6["Day Rate = 2.60×"]
+    TYPE -- "Double Holiday" --> BASE7["Day Rate = 3.00×"]
+    TYPE -- "Dbl Holiday + Rest" --> BASE8["Day Rate = 3.90×"]
+
+    BASE1 --> HOURS{Hours > 8?}
+    BASE2 --> HOURS
+    BASE3 --> HOURS
+    BASE4 --> HOURS
+    BASE5 --> HOURS
+    BASE6 --> HOURS
+    BASE7 --> HOURS
+    BASE8 --> HOURS
+
+    HOURS -- "No" --> REG["Regular Pay\nhourly × day_rate × 8h"]
+    HOURS -- "Yes" --> OT{OT Multiplier}
+    
+    OT -- "Normal Day" --> OT1["OT Rate = 1.25×\n(+25% of hourly)"]
+    OT -- "Premium Day" --> OT2["OT Rate = day_rate × 1.30\n(+30% of day rate)"]
+
+    OT1 --> ND{Work past 10 PM?}
+    OT2 --> ND
+    REG --> ND
+
+    ND -- "No" --> FINAL[Total Day Pay]
+    ND -- "Yes" --> NSD["+ NSD 10%\nof applicable rate\n(OT rate × 0.10)"]
+    NSD --> FINAL
+
+    style DAY fill:#002060,color:#fff
+    style FINAL fill:#D4AF37,color:#fff
+    style NSD fill:#6366f1,color:#fff
+    style OT1 fill:#10b981,color:#fff
+    style OT2 fill:#10b981,color:#fff
+    style REG fill:#f8f9fa,stroke:#002060
+    style BASE5 fill:#ef4444,color:#fff
+    style BASE6 fill:#ef4444,color:#fff
+    style BASE7 fill:#ef4444,color:#fff
+    style BASE8 fill:#ef4444,color:#fff
+```
+
 - **Government Tables**: Automated SSS, PhilHealth, and Pag-IBIG deduction rules.
 - **Resilience Recovery**: The engine includes a surgical self-healing layer that restores missing Python imports and logic (e.g., `loans/views.py`, `shifts/views.py`) to prevent system-wide payroll failures during codebase migrations.
 - **Admin Configuration Toggles**:
