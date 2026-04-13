@@ -416,7 +416,31 @@ erDiagram
   - **BIR Form 1601-C (PDF)**: Professional PDF summaries for monthly remittance.
   - **Annual Alpha-List (.DAT)**: Mandatory BIR-compliant file format for validation modules.
 - **Bank Transmittal (CSV)**: Grouped salary disbursement files with period identifiers.
-- **Holiday Pay Matrix**: Automated Regular (200%), Special (130%), and Rest Day premiums.
+- **Holiday Pay Matrix**: Automated Regular (200%), Special (130%), Local (130%), and Rest Day (130%) premiums with full DOLE-compliant stacking for double holidays, holiday+rest day combos, and mixed-type overlaps.
+- **DOLE Overtime Stacking**: Dynamic OT multiplier computed from the day rate — handles all combinations automatically:
+
+  | Day Type | Day Rate | OT Rate | Example (₱100/hr) |
+  |----------|:---:|:---:|:---:|
+  | Normal | 1.00× | 1.25× | ₱125 |
+  | Rest Day | 1.30× | 1.69× | ₱169 |
+  | Special Holiday | 1.30× | 1.69× | ₱169 |
+  | Special + Rest Day | 1.50× | 1.95× | ₱195 |
+  | Regular Holiday | 2.00× | 2.60× | ₱260 |
+  | Regular + Special | 2.30× | 2.99× | ₱299 |
+  | Holiday + Rest Day | 2.60× | 3.38× | ₱338 |
+  | Double Holiday | 3.00× | 3.90× | ₱390 |
+  | Dbl Holiday + Rest | 3.90× | 5.07× | ₱507 |
+
+- **Night Shift Differential (NSD)**: 10% premium stacks multiplicatively on top of the applicable rate per DOLE:
+
+  | Scenario | Rate | +NSD 10% | Total/hr (₱100) |
+  |----------|:---:|:---:|:---:|
+  | Normal OT + NSD | 1.25× | +₱12.50 | ₱137.50 |
+  | Rest Day OT + NSD | 1.69× | +₱16.90 | ₱185.90 |
+  | Holiday OT + NSD | 2.60× | +₱26.00 | ₱286.00 |
+  | Special + Rest OT + NSD | 1.95× | +₱19.50 | ₱214.50 |
+  | Double Holiday OT + NSD | 3.90× | +₱39.00 | ₱429.00 |
+
 - **Government Tables**: Automated SSS, PhilHealth, and Pag-IBIG deduction rules.
 - **Resilience Recovery**: The engine includes a surgical self-healing layer that restores missing Python imports and logic (e.g., `loans/views.py`, `shifts/views.py`) to prevent system-wide payroll failures during codebase migrations.
 - **Admin Configuration Toggles**:
