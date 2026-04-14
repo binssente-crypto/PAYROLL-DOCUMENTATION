@@ -106,7 +106,7 @@ flowchart TD
     PAY -->|DOLE Compliance| SLIP[Individual Glassmorphic Payslips]
     PAY -->|Audit Trail| REP[Premium Reports Suite]
     PAY -->|Asset Shield| LOAN[Integrated Loan Auto-Deductions]
-    PAY -->|Gov Matrix| REMIT["PH Remittance: R3 / RF-1 / MCRF"]
+    PAY -->|Gov Matrix| REMIT["PH Remittance:\nR3 / RF-1 / MCRF"]
     
     UPL["Legacy / Manual CSV Uploads"] -->|"Encryption Boundary\\nMIME + Limit Verification"| LOG
 
@@ -217,7 +217,7 @@ flowchart TD
     ATTR --> BIZ[Bizmaker Consultancy]
     ATTR --> GAM[Gamma Oracle Dimensions]
     
-    AAA --> SUM["Annotation: Sum Gross/Net"]
+    AAA --> SUM["Annotation:\nSum Gross/Net"]
     BIZ --> SUM
     GAM --> SUM
     
@@ -661,9 +661,9 @@ flowchart LR
     CHECK -- Yes --> SKIP[Skip Those Employees]
     CHECK -- No --> CONFIRM[Confirm Bulk Move]
     SKIP --> CONFIRM
-    CONFIRM --> API[POST /api/employees/bulk-move-branch/]
-    API --> UPDATE[Update employee.branch for eligible rows]
-    UPDATE --> REFRESH[Refresh Registry + Keep 20-row Pages]
+    CONFIRM --> API["POST\n/api/employees/bulk-move-branch/"]
+    API --> UPDATE["Update employee.branch\nfor eligible rows"]
+    UPDATE --> REFRESH["Refresh Registry +\nKeep 20-row Pages"]
 
     style SELECT fill:#002060,color:#fff
     style TARGET fill:#6366f1,color:#fff
@@ -685,14 +685,14 @@ flowchart TD
     GUARD1 -- Yes --> BLOCK1[Action Blocked\nButton Disabled + Spinner]
     GUARD1 -- No --> CONFIRM1[Confirm Dialog]
     CONFIRM1 --> SPIN1[Show Row Spinner\nDisable All Delete Controls]
-    SPIN1 --> API1[DELETE /api/employees/:id/]
+    SPIN1 --> API1["DELETE\n/api/employees/:id/"]
     API1 --> CLEAN1[Clear Loading State\nDeselect Row\nRefresh List]
 
     BULK --> GUARD2{Already Deleting?}
     GUARD2 -- Yes --> BLOCK2[Action Blocked\nButton Disabled + Spinner]
     GUARD2 -- No --> CONFIRM2[Confirm Dialog]
     CONFIRM2 --> SPIN2[Show Bulk Spinner\nDisable All Delete Controls]
-    SPIN2 --> API2[DELETE Each Selected Employee]
+    SPIN2 --> API2["DELETE Each Selected\nEmployee"]
     API2 --> CLEAN2[Clear Loading State\nClear Selection\nRefresh List]
 
     style ACTION fill:#002060,color:#fff
