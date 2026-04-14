@@ -272,7 +272,7 @@ flowchart TD
     
     ROSTER --> ATT{Engine Verification}
     ATT --> HAS[Assignment Detected\\nApply Blueprint Boundaries]
-    ATT --> NO[No Assignment\\nFallback: Global Config Matrix]
+    ATT --> NO[No Assignment\\nFallback: Branch Config Matrix]
 
     style SHIFT fill:#002060,color:#fff
     style ROSTER fill:#D4AF37,color:#fff
@@ -557,8 +557,8 @@ flowchart TD
 
 ### 5. Dynamic Attendance Logic
 - **Early Punch Capping**: Biometric check-ins before the scheduled shift start (e.g., punching in at 7:00 AM for an 8:30 AM shift) are automatically capped to the shift start time. This prevents early arrivals from artificially inflating `total_hours` or triggering unintended overtime.
-- **Dynamic Shift End Projection**: The system no longer assumes a fixed 9-hour gross shift. It dynamically calculates the shift end as `Shift Start + 8.0 (net hours) + Sum of all active unpaid breaks (≥ 1 hour)`.
-- **Automated Break Subtraction**: Any active break defined in settings with a duration of 1 hour or more is automatically deducted from total hours if the employee's work interval overlaps with the break window.
+- **Explicit Shift Boundaries**: The system no longer assumes fixed 8 or 9-hour shifts. Shift durations are strictly bound by the `standard_shift_start` and `standard_shift_end` times configured per branch, allowing for highly flexible custom timeframes (e.g., 6, 8, or 10-hour shifts).
+- **Intelligent Break Subtraction**: Any active break defined in settings with a duration of 1 hour or more is automatically deducted from `total_hours` only if the employee's physical presence actually *overlaps* with the designated break window.
 
 ### 6. Security & Reliability
 - **Direct JWT Sign-In**: Login uses credential-based JWT token issuance through the standard `/api/token/` endpoint — no email OTP required.
@@ -589,8 +589,8 @@ flowchart TD
 - **Weekly Calendar Roster**: Visual grid showing all employees × 7 days. Click any cell to quick-assign a shift.
 - **Bulk Assignment**: Assign a shift to multiple employees across a date range, with automatic rest-day skipping.
 - **Management Calendar Actions**: Click any date in the management calendar to open day-level controls and summaries.
-- **Flexible Half-Day Assignment**: From the date drawer or attendance log, apply half-day to employees and choose the time slot (`Morning` or `Afternoon`). The time slots seamlessly adjust their boundaries based on the standard `shift_start` and `shift_end` configuration of the active branch.
-- **Global Fallback**: If no shift is assigned, the system falls back to the global `standard_shift_start/end` (8:30 AM to 5:30 PM default) from PayrollConfiguration.
+- **Flexible Half-Day Assignment**: From the date drawer or attendance log, apply half-day to employees and choose the time slot (`Morning` or `Afternoon`). The time slots seamlessly adjust their boundaries based on the `standard_shift_start` and `standard_shift_end` configuration of the targeted branch.
+- **Branch Fallback Configuration**: If no shift is assigned, the system relies on the branch-specific `standard_shift_start` and `standard_shift_end` configurations.
 
 ### 9. Payroll Exclusions in Payroll Center
 - **Centralized Exclusions Panel**: Payroll Exclusions now live in Payroll Center above Statutory Eligibility for faster payroll-run validation.
@@ -782,4 +782,4 @@ flowchart TD
 
 ## License
 
-Copyright (c) 2026 BizMaker. 
+Copyright (c) 2026 BizMaker.
