@@ -724,7 +724,7 @@ flowchart TD
     API --> EXIST{Username or\nEmail Already Taken?}
     EXIST -- Yes --> ERR1[/Return 400 – Conflict/]
     EXIST -- No --> PEND[Save PendingRegistration\nwith hashed password]
-    PEND --> EMAIL[Send 6-Digit Code\nvia Email]
+    PEND --> EMAIL[Deliver 6-Digit Code\nvia Brevo API]
     EMAIL --> STEP2[User Enters Code]
     STEP2 --> VERIFY{POST /api/auth/\nverify-registration-code/}
     VERIFY --> CODE{Code Valid\n& Not Expired?}
@@ -755,7 +755,7 @@ flowchart TD
     CHOICE --> CODE[Generate Code]
     CHOICE --> LINK[Generate Link]
 
-    EMAIL --> SEND[Send Email via Gmail SMTP]
+    EMAIL --> SEND[Deliver Email via Brevo API]
     SEND --> RECIPIENT[Recipient Opens Join Link]
     CODE --> MANUAL[Recipient Enters Code Manually]
     LINK --> RECIPIENT
