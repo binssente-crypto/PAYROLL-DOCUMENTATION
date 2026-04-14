@@ -157,7 +157,7 @@ flowchart LR
         direction TB
         P[Unified Period Selector] -->|ISO Range| DATES[start_date & end_date]
         E[Searchable Multi-Employee Filter] -->|Collection| IDS[employee_ids]
-        B[Strategic Branch Selector] -->|Partition| BID[branch_id]
+        B[Branch-Level Organization] -->|Custom Branches| BID[branch_id]
     end
     
     DATES --> API{Analytics Middleware}
@@ -213,21 +213,21 @@ flowchart LR
 ```mermaid
 flowchart TD
     DB[(Statutory Payslip DB)] --> ATTR[Branch Attribution Filter]
-    ATTR --> AAA[AAA and Co., CPAs]
-    ATTR --> BIZ[Bizmaker Consultancy]
-    ATTR --> GAM[Gamma Oracle Dimensions]
+    ATTR --> BR1[Custom Branch A]
+    ATTR --> BR2[Custom Branch B]
+    ATTR --> BR3[Custom Branch C]
     
-    AAA --> SUM["Annotation:\nSum Gross/Net"]
-    BIZ --> SUM
-    GAM --> SUM
+    BR1 --> SUM["Annotation:\nSum Gross/Net"]
+    BR2 --> SUM
+    BR3 --> SUM
     
     SUM --> TRUNC[TruncMonth: Period Grouping]
     TRUNC --> CHART[Integrated Stacked Bar Chart]
     
     subgraph View["C-Level Visualization"]
-        CHART --> SEG1[AAA Segment]
-        CHART --> SEG2[Bizmaker Segment]
-        CHART --> SEG3[Gamma Segment]
+        CHART --> SEG1[Branch A Segment]
+        CHART --> SEG2[Branch B Segment]
+        CHART --> SEG3[Branch C Segment]
     end
 
     style DB fill:#002060,color:#fff
@@ -267,7 +267,7 @@ flowchart TD
     
     SINGLE --> ROSTER[Dynamic Weekly Calendar]
     BULK --> ROSTER
-    MGMT --> HALF[Set All Employees Half-Day\\nChoose AM or PM]
+    MGMT --> HALF[Flexible Half-Day Assignment\\nDynamic AM/PM via Config]
     HALF --> ROSTER
     
     ROSTER --> ATT{Engine Verification}
@@ -539,7 +539,7 @@ flowchart TD
 
 ### 3. Advanced Attendance Analytics
 - **Unified Period Picker**: Single selector with Day, Week, Month, Year, and Custom Range options. All selections are converted into `start_date` and `end_date` for unified backend filtering.
-- **Branch-Level Organization**: A new dedicated Branch Filter allows admins to "sort" all attendance data by company (`AAA and Co., CPAs`, `Bizmaker Consultancy, Inc.`, or `Gamma Oracle Dimensions Inc.`), instantly updating logs and summaries.
+- **Branch-Level Organization**: A new dedicated Branch Filter allows admins to "sort" all attendance data by customizable company branches, instantly updating logs and summaries.
 - **Multi-Select Employee Filter**: Searchable dropdown supporting filtering by employee name or position. Select multiple employees to generate custom group analytics.
 - **Period Summary Dashboard**: Aggregated metrics including total work hours, attendance rate, punctuality rate, overtime, late counts, and undertime — all dynamically scoped to the selected period.
 - **Punctuality Formula**: Punctuality now reflects both lateness and absences. The rate is calculated from on-time present days over total expected workdays (`present + absent`).
@@ -589,7 +589,7 @@ flowchart TD
 - **Weekly Calendar Roster**: Visual grid showing all employees × 7 days. Click any cell to quick-assign a shift.
 - **Bulk Assignment**: Assign a shift to multiple employees across a date range, with automatic rest-day skipping.
 - **Management Calendar Actions**: Click any date in the management calendar to open day-level controls and summaries.
-- **All-Employees Half-Day Assignment**: From the date drawer, apply half-day to all listed employees and choose the time slot (`AM` or `PM`) before saving.
+- **Flexible Half-Day Assignment**: From the date drawer or attendance log, apply half-day to employees and choose the time slot (`Morning` or `Afternoon`). The time slots seamlessly adjust their boundaries based on the standard `shift_start` and `shift_end` configuration of the active branch.
 - **Global Fallback**: If no shift is assigned, the system falls back to the global `standard_shift_start/end` (8:30 AM to 5:30 PM default) from PayrollConfiguration.
 
 ### 9. Payroll Exclusions in Payroll Center
@@ -626,7 +626,7 @@ flowchart TD
 - **Multi-Tenant Privacy Guard**: Sensitive financial metrics (Branch Overview, Labor Cost, YTD) are protected by a master password-reveal lock.
   - **Session Persistence**: 3-hour auto-reveal window for convenience.
   - **Instant Lockdown**: Dedicated 🔒 button for immediate re-blurring.
-  - **Branch Cost Attribution**: Interactive **Stacked Bar Chart** for multi-branch labor cost comparison (`AAA`, `Bizmaker`, and `Gamma`).
+  - **Branch Cost Attribution**: Interactive **Stacked Bar Chart** for multi-branch labor cost comparison dynamically aggregating your custom branches.
   - **System Override Integration**: Secure password protection (`B!zm@k3r2026`) for critical data purging and system overrides.
 
 ### 14. Government Remittance Files
@@ -634,7 +634,7 @@ flowchart TD
 - **PhilHealth RF-1**: CSV export with premium splits per employee.
 - **Pag-IBIG MCRF**: CSV export with contribution breakdowns.
 - **One-Click Download**: Dropdown menu on processed payroll periods for instant generation.
-- **Automatic Branch Cost Comparison**: Side-by-side analytics for `AAA and Co., CPAs`, `Bizmaker Consultancy, Inc.`, and `Gamma Oracle Dimensions Inc.`, including headcount, average salary, and budget utilization.
+- **Automatic Branch Cost Comparison**: Side-by-side analytics for dynamically generated custom branches, including headcount, average salary, and budget utilization.
 - **Monthly Total Aggregation**: Combines both semi-monthly cycles into a single remittance file, aggregating per employee.
 
 ### 15. Global Holiday Synchronization
@@ -782,4 +782,4 @@ flowchart TD
 
 ## License
 
-Copyright (c) 2026 BizMaker.
+Copyright (c) 2026 BizMaker. 
