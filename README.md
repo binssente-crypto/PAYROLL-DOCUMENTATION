@@ -123,22 +123,22 @@ flowchart TD
 ```mermaid
 flowchart TD
     START([Employee Day Horizon]) --> FW{Authorized Fieldwork?}
-    FW -- "No" --> PHYS[Standard Path: Physical Logs Only]
-    FW -- "Yes" --> LOGS{Hybrid Path: Physical Logs Check}
+    FW -- "No" --> PHYS["Standard Path:<br/>Physical Logs Only"]
+    FW -- "Yes" --> LOGS{"Hybrid Path:<br/>Physical Logs Check"}
     
-    LOGS -- "None" --> BASE["DOLE Floor\n8.0 Standard Hours"]
-    LOGS -- "Found" --> MERGE[Engine: Boundary Infiltration]
+    LOGS -- "None" --> BASE["DOLE Floor<br/>8.0 Standard Hours"]
+    LOGS -- "Found" --> MERGE["Engine:<br/>Boundary Infiltration"]
     
-    MERGE --> EFF["effective_in = min(check_in, shift_start)\\neffective_out = max(check_out, fw_end)"]
-    EFF --> BREAKS["Statutory Deduction\nUnpaid Breaks ≥ 1h"]
+    MERGE --> EFF["eff_in = min(in, shift)<br/>eff_out = max(out, fw)"]
+    EFF --> BREAKS["Statutory Deduction<br/>Unpaid Breaks ≥ 1h"]
     BREAKS --> CALC{Net Duration > 8.0h?}
     
     CALC -- "Yes" --> OT[Base 8h + Premium Overtime]
-    CALC -- "No" --> FLOOR["Guaranteed\n8.0h Baseline"]
+    CALC -- "No" --> FLOOR["Guaranteed<br/>8.0h Baseline"]
     
     OT --> ND{Punch-out ≥ 10 PM?}
-    FLOOR --> SAVE["Persistence\nDailyAttendance Ledger"]
-    ND -- "Yes" --> NIGHT[+ Night Differential Multiplier]
+    FLOOR --> SAVE["Persistence<br/>DailyAttendance Ledger"]
+    ND -- "Yes" --> NIGHT["+ Night Differential<br/>Multiplier"]
     ND -- "No" --> SAVE
     NIGHT --> SAVE
 
@@ -262,25 +262,25 @@ flowchart LR
 flowchart TD
     ARCH[Branch Schedule Archetypes] --> STD[Standard\nMon-Fri]
     ARCH --> COMP[Compressed\n4x10 Custom]
-    ARCH --> SIX[Six-Day\nWith Half/Full Sat]
+    ARCH --> SIX["Six-Day<br/>With Half/Full Sat"]
     
-    STD --> SYNC[Auto-Sync Employee Rest Days]
+    STD --> SYNC["Auto-Sync<br/>Employee Rest Days"]
     COMP --> SYNC
     SIX --> SYNC
     
     SHIFT[Shift Blueprints] --> ASSIGN{Allocation}
-    ASSIGN --> SINGLE[Quick Cell Tap\\nInstant Assignment]
-    ASSIGN --> BULK[Bulk Multi-Roster\\nRange + Employee Group]
-    ASSIGN --> MGMT[Management Calendar\\nDate-Level Operations]
+    ASSIGN --> SINGLE["Quick Cell Tap<br/>Instant Assignment"]
+    ASSIGN --> BULK["Bulk Multi-Roster<br/>Range + Employee Group"]
+    ASSIGN --> MGMT["Management Calendar<br/>Date-Level Ops"]
     
     SINGLE --> ROSTER[Dynamic Weekly Calendar]
     BULK --> ROSTER
-    MGMT --> HALF[Flexible Half-Day Assignment\\nDynamic AM/PM via Config]
+    MGMT --> HALF["Flexible Half-Day<br/>Assignment"]
     HALF --> ROSTER
     
     ROSTER --> ATT{Engine Verification}
-    ATT --> HAS[Assignment Detected\\nApply Blueprint Boundaries]
-    ATT --> NO[No Assignment\\nFallback: Branch Config Matrix]
+    ATT --> HAS["Assignment Detected<br/>Apply Boundaries"]
+    ATT --> NO["No Assignment<br/>Branch Fallback"]
     
     SYNC --> NO
 
@@ -302,18 +302,18 @@ flowchart TD
     APPROVAL -- "Rejected/Pending" --> IGNORE[Ignore in Payroll]
     
     TYPE -- "Unpaid Leave" --> NO_OT[Zero Impact on OT]
-    TYPE -- "Paid Full Day" --> HOURS[Calculate Guarantee Hours]
+    TYPE -- "Paid Full Day" --> HOURS["Calculate<br/>Guarantee Hours"]
     TYPE -- "Half-Day" --> HALF{Half-Day Source}
     
     HOURS --> ARCH{Branch Archetype}
-    ARCH -- "Standard (8h)" --> CRED_8[Credit 8h to physical work]
-    ARCH -- "Compressed (10h)" --> CRED_10[Credit 10h to physical work]
+    ARCH -- "Standard (8h)" --> CRED_8["Credit 8h to<br/>physical work"]
+    ARCH -- "Compressed (10h)" --> CRED_10["Credit 10h to<br/>physical work"]
     
-    CRED_8 --> CALC[Effective Work = Physical + Leave Hours]
+    CRED_8 --> CALC["Effective Work =<br/>Physical + Leave"]
     CRED_10 --> CALC
     
-    HALF -- "Employee Requested" --> CAP[Hard Cap at 4h\nZero OT Allowed]
-    HALF -- "Company Mandated" --> LOWER[Lower OT Threshold to 4h\nAllow OT Accrual]
+    HALF -- "Employee Requested" --> CAP["Hard Cap at 4h<br/>Zero OT Allowed"]
+    HALF -- "Company Mandated" --> LOWER["Lower OT Threshold to 4h<br/>Allow OT Accrual"]
     
     LOWER --> CALC
     CAP --> BASE[Standard Base Pay]
@@ -347,6 +347,7 @@ erDiagram
     EMPLOYEE ||--o{ DAILY_ATTENDANCE : summarizes
     EMPLOYEE ||--o{ FIELDWORK_REQUEST : files
     EMPLOYEE ||--o{ HALF_DAY_SCHEDULE : assigned
+    EMPLOYEE ||--o{ LEAVE_REQUEST : files
     
     PAYROLL_PERIOD ||--o{ PAYSLIP : contains
     EMPLOYEE ||--o{ PAYSLIP : receives
@@ -355,6 +356,7 @@ erDiagram
     SSS_TABLE ||--o{ PAYROLL_CONFIGURATION : references
     PH_TABLE ||--o{ PAYROLL_CONFIGURATION : references
     BIR_TAX_TABLE ||--o{ PAYROLL_CONFIGURATION : references
+    USER ||--o{ LEAVE_REQUEST : approves
 
     EMPLOYEE {
         string employee_id PK
@@ -390,6 +392,17 @@ erDiagram
         date date
         string schedule_type "AM/PM"
     }
+
+    LEAVE_REQUEST {
+        string leave_type "SIL/VL/SL/MATERNITY/etc"
+        date start_date
+        date end_date
+        boolean is_paid
+        boolean is_half_day
+        string half_day_period "AM/PM"
+        string status "PENDING/APPROVED/REJECTED"
+        datetime approved_at
+    }
     
     PAYSLIP {
         decimal gross_pay "Inclusive of Holiday/OT/Bonus"
@@ -402,12 +415,12 @@ erDiagram
     }
 
     PAYROLL_CONFIGURATION {
-        int cycle1_start_day "e.g. 6"
-        int cycle1_end_day "e.g. 20"
-        decimal sss_fixed_rate
-        decimal philhealth_fixed_rate
+        int branch_id FK
+        string work_schedule_type "STANDARD/COMPRESSED/SIX_DAY_HALF/SIX_DAY_FULL"
+        string saturday_half_day_session "AM/PM"
         boolean auto_calculate_13th_month "Accrual Toggle"
         boolean bonuses_available "Bonus Global Kill-switch"
+        decimal late_deduction_per_minute
     }
 
     EMPLOYEE ||--o{ LOAN : borrows
