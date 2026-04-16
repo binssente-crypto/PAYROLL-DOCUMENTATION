@@ -794,22 +794,22 @@ flowchart TD
 #### Sign-Up Email Verification Flow
 ```mermaid
 flowchart TD
-    VISITOR[New User] --> FORM[Fill Sign-Up Form\nUsername · Email · Password]
+    VISITOR[New User] --> FORM["Fill Sign-Up Form<br/>User · Email · Password"]
     FORM --> SEND[Request Verification Code]
-    SEND --> API{POST /api/auth/\nrequest-registration-code/}
-    API --> EXIST{Username or\nEmail Already Taken?}
+    SEND --> API{"POST /api/auth/<br/>request-code/"}
+    API --> EXIST{Username or<br/>Email Taken?}
     EXIST -- Yes --> ERR1[/Return 400 – Conflict/]
-    EXIST -- No --> PEND[Save PendingRegistration\nwith hashed password]
-    PEND --> EMAIL[Deliver 6-Digit Code\nvia Brevo API]
+    EXIST -- No --> PEND["Save Registration<br/>(Hashed Password)"]
+    PEND --> EMAIL["Deliver 6-Digit Code<br/>via Brevo API"]
     EMAIL --> STEP2[User Enters Code]
-    STEP2 --> VERIFY{POST /api/auth/\nverify-registration-code/}
-    VERIFY --> CODE{Code Valid\n& Not Expired?}
+    STEP2 --> VERIFY{"POST /api/auth/<br/>verify-code/"}
+    VERIFY --> CODE{Code Valid<br/>& Not Expired?}
     CODE -- No --> ERR2[/Return 400 – Invalid Code/]
     CODE -- Yes --> CREATE[Create User + Profile]
-    CREATE --> CONSUME[Mark Code Consumed\nDelete PendingRegistration]
+    CREATE --> CONSUME["Mark Code Consumed<br/>Delete Registration"]
     CONSUME --> DONE[201 – Account Created]
     DONE --> LOGIN[Redirect to Login]
-    LOGIN --> JWT[Issue JWT via /api/token/]
+    LOGIN --> JWT["Issue JWT via<br/>/api/token/"]
 
     style VISITOR fill:#002060,color:#fff
     style PEND fill:#6366f1,color:#fff
@@ -831,9 +831,9 @@ flowchart TD
     CHOICE --> CODE[Generate Code]
     CHOICE --> LINK[Generate Link]
 
-    EMAIL --> SEND[Deliver Email via Brevo API]
-    SEND --> RECIPIENT[Recipient Opens Join Link]
-    CODE --> MANUAL[Recipient Enters Code Manually]
+    EMAIL --> SEND["Deliver Email<br/>via Brevo API"]
+    SEND --> RECIPIENT["Recipient Opens<br/>Join Link"]
+    CODE --> MANUAL["Recipient Enters<br/>Code Manually"]
     LINK --> RECIPIENT
 
     RECIPIENT --> AUTH{Authenticated?}
@@ -844,7 +844,7 @@ flowchart TD
     COLLAB --> PREFILL[Invite Code Prefilled]
     PREFILL --> ACCEPT[Accept Invitation]
     MANUAL --> ACCEPT
-    ACCEPT --> ACCESS[Collaborator Access Created]
+    ACCEPT --> ACCESS["Collaborator Access<br/>Created"]
 
     style OWNER fill:#002060,color:#fff
     style CHOICE fill:#f8f9fa,stroke:#002060
@@ -858,4 +858,4 @@ flowchart TD
 
 ## License
 
-Copyright (c) 2026 BizMaker.
+Copyright (c) 2026 BizMaker. 
