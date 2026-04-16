@@ -298,11 +298,12 @@ flowchart TD
 ```mermaid
 flowchart TD
     FILE[Employee Files Leave] --> APPROVAL{Admin Approval}
-    APPROVAL -- "Approved" --> TYPE{Leave Type}
+    APPROVAL -- "Approved" --> TYPE{Leave/Shift Type}
     APPROVAL -- "Rejected/Pending" --> IGNORE[Ignore in Payroll]
     
-    TYPE -- "Unpaid" --> NO_OT[Zero Impact on OT]
-    TYPE -- "Paid" --> HOURS[Calculate Guarantee Hours]
+    TYPE -- "Unpaid Leave" --> NO_OT[Zero Impact on OT]
+    TYPE -- "Paid Full Day" --> HOURS[Calculate Guarantee Hours]
+    TYPE -- "Half-Day" --> HALF{Half-Day Source}
     
     HOURS --> ARCH{Branch Archetype}
     ARCH -- "Standard (8h)" --> CRED_8[Credit 8h to physical work]
@@ -311,13 +312,22 @@ flowchart TD
     CRED_8 --> CALC[Effective Work = Physical + Leave Hours]
     CRED_10 --> CALC
     
+    HALF -- "Employee Requested" --> CAP[Hard Cap at 4h\nZero OT Allowed]
+    HALF -- "Company Mandated" --> LOWER[Lower OT Threshold to 4h\nAllow OT Accrual]
+    
+    LOWER --> CALC
+    CAP --> BASE[Standard Base Pay]
+
     CALC --> OT_THRESH{Total > Threshold?}
     OT_THRESH -- "Yes" --> OT_GEN[Generate Overtime]
-    OT_THRESH -- "No" --> BASE[Standard Base Pay]
+    OT_THRESH -- "No" --> BASE
 
     style FILE fill:#002060,color:#fff
     style TYPE fill:#f8f9fa,stroke:#002060
     style ARCH fill:#f8f9fa,stroke:#002060
+    style HALF fill:#f8f9fa,stroke:#002060
+    style CAP fill:#ef4444,color:#fff
+    style LOWER fill:#10b981,color:#fff
     style CRED_8 fill:#10b981,color:#fff
     style CRED_10 fill:#10b981,color:#fff
     style CALC fill:#6366f1,color:#fff
@@ -639,6 +649,9 @@ flowchart TD
 - **10 Statutory Leave Types**: Native support for SIL, Vacation, Sick, Maternity (RA 11210), Paternity (RA 8187), Solo Parent (RA 8972), VAWC (RA 9262), Magna Carta (RA 9710), Bereavement, and Emergency leaves.
 - **Integrated Overtime Calculation**: Paid leave hours are intelligently credited toward the employee's daily OT threshold. Taking a paid leave (or half-day paid leave) physically counts as "worked hours" when stacking with actual physical presence to calculate overtime.
 - **Dynamic OT Thresholds**: The threshold adapts to the branch archetype. A full-day paid leave on a 4/10 compressed schedule credits 10 hours toward OT, while standard schedules credit 8 hours.
+- **Half-Day Overtime Compliance**: 
+  - **Employee-Requested Half-Days**: Hard-capped at 4 physical hours to prevent unauthorized OT accrual per DOLE standard.
+  - **Company-Mandated Half-Days (SIX_DAY_HALF)**: Dynamically lowers the OT threshold to 4.0 for that specific day, allowing any extra physical hours to overflow natively into Overtime payout.
 - **Approval Workflow**: Leaves are filed as PENDING and require explicit approval by an administrator with `leaves_permission`. Rejected or cancelled leaves have zero impact on payroll.
 - **Leave Dashboard**: Dedicated interface summarizing pending, approved, and rejected leaves across all branches or filtered to a specific context.
 
@@ -832,4 +845,4 @@ flowchart TD
 
 ## License
 
-Copyright (c) 2026 BizMaker. 
+Copyright (c) 2026 BizMaker.
