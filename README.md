@@ -62,6 +62,10 @@ flowchart TD
         Export --> DAT[Alpha-List .DAT Validator]
         Export --> CSV[Bank Transmittal Suite]
         Export --> REM["Statutory: R3 / RF-1 / MCRF"]
+        
+        Calc --> SEP{Scheduled Separation Pay?}
+        SEP -- Yes --> Gen
+        SEP -- No --> EXCL
     end
 
     classDef bizGold fill:#D4AF37,stroke:#002060,stroke-width:2px,color:#fff
@@ -321,7 +325,7 @@ flowchart TD
     CALC --> OT_THRESH{Total > Threshold?}
     OT_THRESH -- "Yes" --> OT_GEN[Generate Overtime]
     OT_THRESH -- "No" --> BASE
-
+    
     style FILE fill:#002060,color:#fff
     style TYPE fill:#f8f9fa,stroke:#002060
     style ARCH fill:#f8f9fa,stroke:#002060
@@ -332,6 +336,40 @@ flowchart TD
     style CRED_10 fill:#10b981,color:#fff
     style CALC fill:#6366f1,color:#fff
     style OT_GEN fill:#D4AF37,color:#fff
+```
+
+### Employee Separation & Archival Lifecycle
+```mermaid
+flowchart TD
+    REGISTRY[Personnel Registry] --> ACTION{Admin Action}
+    
+    ACTION --> STUDY[Toggle Study Break]
+    STUDY --> PAY_GATE{Payroll Engine}
+    PAY_GATE -- "Is on Study Break?" --> SKIP[/Bypass Processing/]
+    PAY_GATE -- "No" --> PROC[Standard Calculation]
+    
+    ACTION --> SEP[Resign / Terminate]
+    SEP --> DIALOG[Separation Logic]
+    
+    DIALOG --> PERIOD[Select Scheduled Final Pay Period]
+    DIALOG --> LEAVE[Convert Unused Leave to Cash]
+    
+    PERIOD --> ENGINE[Payroll Engine: Final Run]
+    LEAVE --> ENGINE
+    
+    ENGINE --> ARCHIVE[Archive Employee Profile]
+    ARCHIVE --> VAULT[Immutable Archival Vault]
+    VAULT --> HISTORY[Read-Only Payroll History]
+    VAULT -- "DOLE Policy" --> PROTECT[Deletion Blocked]
+
+    style REGISTRY fill:#002060,color:#fff
+    style ACTION fill:#f8f9fa,stroke:#002060
+    style STUDY fill:#6366f1,color:#fff
+    style SEP fill:#ef4444,color:#fff
+    style ARCHIVE fill:#10b981,color:#fff
+    style VAULT fill:#D4AF37,color:#fff
+    style PROTECT fill:#ef4444,color:#fff
+    style HISTORY fill:#10b981,color:#fff
 ```
 
 ## Database Schema (ERD)
@@ -366,6 +404,12 @@ erDiagram
         string tin_no "BIR ID"
         decimal basic_salary "Monthly Base"
         decimal hourly_rate "Auto-calculated"
+        string employment_status "ACTIVE/RESIGNED/TERMINATED/ARCHIVED"
+        string separation_type "RESIGNATION/TERMINATION"
+        date separation_date
+        decimal leave_conversion_amount "SIL/VL Cash Value"
+        boolean is_on_study_break "Payroll Exclusion Flag"
+        datetime archived_at
     }
     
     DAILY_ATTENDANCE {
@@ -727,6 +771,11 @@ flowchart TD
 - **Bulk Branch Transfer**: Move selected employees to another branch from the registry using a single bulk action.
 - **Same-Branch Guard**: Employees already assigned to the target branch are skipped automatically to prevent no-op moves.
 - **Registry Pagination**: The Employees registry paginates at 20 records per page for cleaner browsing and faster scanning.
+- **DOLE-Compliant Separation & Archival**:
+  - **Final Pay Automation**: Admins select a future payroll period for final pay. The engine automatically excludes the employee from all periods *except* the designated one.
+  - **Leave Conversion**: Unused leave credits (SIL/VL) can be converted to cash and bundled into the final pay.
+  - **Study Break Logic**: Direct toggle to exclude employees from payroll for study leaves without formally separating them.
+  - **Immutable Registry**: Archived employees are moved to a separate vault where their records and payroll history become read-only and immutable.
 - **Delete Loading Guards**: Both single-row and bulk delete actions display loading spinners and disable all delete controls while the API call is in flight, preventing duplicate deletion requests from repeated clicks.
 
 #### Employee Branch Transfer Flow
@@ -858,4 +907,4 @@ flowchart TD
 
 ## License
 
-Copyright (c) 2026 BizMaker. 
+Copyright (c) 2026 BizMaker.
