@@ -257,9 +257,17 @@ flowchart LR
     style ACTIVE fill:#f8f9fa,stroke:#002060
 ```
 
-### Shift Scheduling Flow
+### Shift Scheduling & Branch Archetypes
 ```mermaid
 flowchart TD
+    ARCH[Branch Schedule Archetypes] --> STD[Standard\nMon-Fri]
+    ARCH --> COMP[Compressed\n4x10 Custom]
+    ARCH --> SIX[Six-Day\nWith Half/Full Sat]
+    
+    STD --> SYNC[Auto-Sync Employee Rest Days]
+    COMP --> SYNC
+    SIX --> SYNC
+    
     SHIFT[Shift Blueprints] --> ASSIGN{Allocation}
     ASSIGN --> SINGLE[Quick Cell Tap\\nInstant Assignment]
     ASSIGN --> BULK[Bulk Multi-Roster\\nRange + Employee Group]
@@ -273,13 +281,47 @@ flowchart TD
     ROSTER --> ATT{Engine Verification}
     ATT --> HAS[Assignment Detected\\nApply Blueprint Boundaries]
     ATT --> NO[No Assignment\\nFallback: Branch Config Matrix]
+    
+    SYNC --> NO
 
+    style ARCH fill:#002060,color:#fff
     style SHIFT fill:#002060,color:#fff
     style ROSTER fill:#D4AF37,color:#fff
     style HALF fill:#f59e0b,color:#fff
     style HAS fill:#10b981,color:#fff
     style NO fill:#6366f1,color:#fff
+    style SYNC fill:#10b981,color:#fff
     style ASSIGN fill:#f8f9fa,stroke:#002060
+```
+
+### Leave Management & OT Integration
+```mermaid
+flowchart TD
+    FILE[Employee Files Leave] --> APPROVAL{Admin Approval}
+    APPROVAL -- "Approved" --> TYPE{Leave Type}
+    APPROVAL -- "Rejected/Pending" --> IGNORE[Ignore in Payroll]
+    
+    TYPE -- "Unpaid" --> NO_OT[Zero Impact on OT]
+    TYPE -- "Paid" --> HOURS[Calculate Guarantee Hours]
+    
+    HOURS --> ARCH{Branch Archetype}
+    ARCH -- "Standard (8h)" --> CRED_8[Credit 8h to physical work]
+    ARCH -- "Compressed (10h)" --> CRED_10[Credit 10h to physical work]
+    
+    CRED_8 --> CALC[Effective Work = Physical + Leave Hours]
+    CRED_10 --> CALC
+    
+    CALC --> OT_THRESH{Total > Threshold?}
+    OT_THRESH -- "Yes" --> OT_GEN[Generate Overtime]
+    OT_THRESH -- "No" --> BASE[Standard Base Pay]
+
+    style FILE fill:#002060,color:#fff
+    style TYPE fill:#f8f9fa,stroke:#002060
+    style ARCH fill:#f8f9fa,stroke:#002060
+    style CRED_8 fill:#10b981,color:#fff
+    style CRED_10 fill:#10b981,color:#fff
+    style CALC fill:#6366f1,color:#fff
+    style OT_GEN fill:#D4AF37,color:#fff
 ```
 
 ## Database Schema (ERD)
@@ -501,15 +543,15 @@ flowchart TD
 flowchart TD
     CFG[Admin Settings Panel] --> A13{Auto-accrue 14–16th?}
     
-    A13 -- ON --> LOCK["All employees: 14th/15th/16th = ON\\nPer-employee toggles LOCKED"]
+    A13 -- ON --> LOCK["All employees: 14th–16th ON\\nPer-employee toggles LOCKED"]
     A13 -- OFF --> MANUAL["Per-employee toggles UNLOCKED\\nAll set to OFF by default"]
-    MANUAL --> ADMIN["Admin can manually enable\\n14th/15th/16th per employee"]
+    MANUAL --> ADMIN["Admin can manually enable\\n14th–16th per employee"]
     
     LOCK --> ENGINE[Payroll Engine]
     ADMIN --> ENGINE
     
     CFG --> BONUS{Enable Bonus Mgmt?}
-    BONUS -- ON --> BPROC["Perfect Attendance + Christmas\\n+ Manual bonuses processed"]
+    BONUS -- ON --> BPROC["PA + Christmas + Manual\\nBonuses processed"]
     BONUS -- OFF --> BSKIP["All bonus calculations = ₱0"]
     
     BPROC --> ENGINE
@@ -585,12 +627,20 @@ flowchart TD
 - **Dashboard Summary**: Total active loans, outstanding balance, monthly deduction totals.
 
 ### 8. Shift Scheduling & Roster
+- **Branch-Specific Work Schedules (Archetypes)**: Enforce Standard (5-day), Compressed (4/10), or Six-Day (Half/Full Saturday) schedules at the branch level. Changing an archetype automatically syncs rest days for all employees in that branch.
 - **Shift Templates**: Create reusable shifts (Morning, Mid, Night, Custom) with start/end times, break windows, and color coding.
 - **Weekly Calendar Roster**: Visual grid showing all employees × 7 days. Click any cell to quick-assign a shift.
 - **Bulk Assignment**: Assign a shift to multiple employees across a date range, with automatic rest-day skipping.
 - **Management Calendar Actions**: Click any date in the management calendar to open day-level controls and summaries.
-- **Flexible Half-Day Assignment**: From the date drawer or attendance log, apply half-day to employees and choose the time slot (`Morning` or `Afternoon`). The time slots seamlessly adjust their boundaries based on the `standard_shift_start` and `standard_shift_end` configuration of the targeted branch.
-- **Branch Fallback Configuration**: If no shift is assigned, the system relies on the branch-specific `standard_shift_start` and `standard_shift_end` configurations.
+- **Flexible Half-Day Assignment**: From the date drawer or attendance log, apply half-day to employees and choose the time slot (`Morning` or `Afternoon`). The time slots seamlessly adjust their boundaries based on the branch's configuration.
+- **Branch Fallback Configuration**: If no shift is assigned, the system relies on the branch-specific work schedule archetype and standard shift boundaries.
+
+### 9. DOLE-Compliant Leave Management System
+- **10 Statutory Leave Types**: Native support for SIL, Vacation, Sick, Maternity (RA 11210), Paternity (RA 8187), Solo Parent (RA 8972), VAWC (RA 9262), Magna Carta (RA 9710), Bereavement, and Emergency leaves.
+- **Integrated Overtime Calculation**: Paid leave hours are intelligently credited toward the employee's daily OT threshold. Taking a paid leave (or half-day paid leave) physically counts as "worked hours" when stacking with actual physical presence to calculate overtime.
+- **Dynamic OT Thresholds**: The threshold adapts to the branch archetype. A full-day paid leave on a 4/10 compressed schedule credits 10 hours toward OT, while standard schedules credit 8 hours.
+- **Approval Workflow**: Leaves are filed as PENDING and require explicit approval by an administrator with `leaves_permission`. Rejected or cancelled leaves have zero impact on payroll.
+- **Leave Dashboard**: Dedicated interface summarizing pending, approved, and rejected leaves across all branches or filtered to a specific context.
 
 ### 9. Payroll Exclusions in Payroll Center
 - **Centralized Exclusions Panel**: Payroll Exclusions now live in Payroll Center above Statutory Eligibility for faster payroll-run validation.
@@ -782,4 +832,4 @@ flowchart TD
 
 ## License
 
-Copyright (c) 2026 BizMaker.
+Copyright (c) 2026 BizMaker. 
