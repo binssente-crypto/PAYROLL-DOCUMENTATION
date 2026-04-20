@@ -36,7 +36,7 @@ flowchart TD
         
         Sync --> Busy{Hardware Busy?}
         Busy -- No --> Hol{PH Holiday?}
-        Hol -- Yes --> Resting[Mark 'Resting' - No Absent Flag]
+        Hol -- Yes --> Resting["Mark 'Resting'<br/>No Absent Flag"]
         Hol -- No --> Proc[Engine: Log Processing]
         
         Proc --> SmartSync{Smart Profile Sync}
@@ -110,9 +110,9 @@ flowchart TD
     PAY -->|DOLE Compliance| SLIP[Individual Glassmorphic Payslips]
     PAY -->|Audit Trail| REP[Premium Reports Suite]
     PAY -->|Asset Shield| LOAN[Integrated Loan Auto-Deductions]
-    PAY -->|Gov Matrix| REMIT["PH Remittance:\nR3 / RF-1 / MCRF"]
+    PAY -->|Gov Matrix| REMIT["PH Remittance:<br/>R3 / RF-1 / MCRF"]
     
-    UPL["Legacy / Manual CSV Uploads"] -->|"Encryption Boundary\\nMIME + Limit Verification"| LOG
+    UPL["Legacy / Manual CSV Uploads"] -->|"Encryption Boundary<br/>MIME + Limit Verification"| LOG
 
     style HW fill:#002060,color:#fff
     style SLIP fill:#D4AF37,color:#fff
@@ -191,10 +191,10 @@ flowchart LR
     PERIOD[Temporal Context] -->|start_date & end_date| RULES{Logic Heuristics}
     EMP[Entity Context] -->|employee_ids| RULES
     
-    RULES --> R1["Ghost Overtime\\n>3h OT, no OB/FW"]
-    RULES --> R2["Segment Fragmentation\\nMissing Punctures"]
-    RULES --> R3["Chronic Lateness\\nThreshold: 5+ events"]
-    RULES --> R4["Rest Day Boundary Violation\\nUnauthorized Presence"]
+    RULES --> R1["Ghost Overtime<br/>>3h OT, no OB/FW"]
+    RULES --> R2["Segment Fragmentation<br/>Missing Punctures"]
+    RULES --> R3["Chronic Lateness<br/>Threshold: 5+ events"]
+    RULES --> R4["Rest Day Boundary Violation<br/>Unauthorized Presence"]
     
     R1 --> SEV{Integrity Sort}
     R2 --> SEV
@@ -221,7 +221,7 @@ flowchart TD
     ATTR --> BR2[Custom Branch B]
     ATTR --> BR3[Custom Branch C]
     
-    BR1 --> SUM["Annotation:\nSum Gross/Net"]
+    BR1 --> SUM["Annotation:<br/>Sum Gross/Net"]
     BR2 --> SUM
     BR3 --> SUM
     
@@ -351,8 +351,8 @@ flowchart TD
     ACTION --> SEP[Resign / Terminate]
     SEP --> DIALOG[Separation Logic]
     
-    DIALOG --> PERIOD[Select Scheduled Final Pay Period]
-    DIALOG --> LEAVE[Convert Unused Leave to Cash]
+    DIALOG --> PERIOD["Select Scheduled<br/>Final Pay Period"]
+    DIALOG --> LEAVE["Convert Unused<br/>Leave to Cash"]
     
     PERIOD --> ENGINE[Payroll Engine: Final Run]
     LEAVE --> ENGINE
@@ -511,6 +511,32 @@ erDiagram
 
 ## Core Features
 
+### DOLE EEMR & Schedule-Aware Salary Engine (2026)
+
+```mermaid
+graph TD
+A["Employee Profile"] --> B{"Salary Type?"}
+B --> C["Monthly Paid: Factor 365"]
+B --> D["Daily Paid: Branch Schedule"]
+D --> E["Standard: Factor 261"]
+D --> F["Six-Day: Factor 313"]
+D --> G["Compressed: Factor 209"]
+C --> H["Calculation Engine"]
+E --> H
+F --> H
+G --> H
+H --> I["Basic Monthly Salary"]
+```
+
+- **Live EEMR Forecasting**: The Personnel Registry features a **real-time reactive engine** that computes EEMR Monthly and Daily rates instantly as you type. 
+- **Schedule-Aware Multipliers**: The system automatically detects the **Branch Archetype** (Standard, Compressed, or Six-Day) and applies official DOLE mathematical factors (**30.42, 26.08, 21.75, 17.42**) for perfect monthly forecasting.
+- **Bi-Directional Editing**: Admins can enter a target value in any field (e.g., Target Monthly Salary), and the system will **inverse-calculate** the required Hourly Rate while preserving mathematical integrity for OT/Holiday pay.
+- **Interactive Factor Selection**: Seamlessly toggle between DOLE-suggested factors (**395, 313, 305, 261**) based on company policy and witness the salary impact in real-time.
+- **DOLE Handbook Alignment**: All implemented formulas are strictly derived from Section 6, Chapter I of the Rules Implementing Republic Act No. 6727, including 10-hour day support for compressed work weeks.
+
+
+
+
 ### 1. Hybrid Cloud Edge Architecture
 - **Statutory Backend**: Django 5.2 hosted on **Render** (Auto-scaling, Global Edge).
 - **Glassmorphic Frontend**: Vue 3.4 hosted on **Vercel** (Global CDN, 100ms deployments).
@@ -520,6 +546,7 @@ erDiagram
 
 ### 2. Philippine Payroll Compliance
 - **Payroll XLSX Export (Premium)**: Multi-sheet Excel workbook with live formulas, individual employee sheets, Master Summary, and dynamic statutory contribution lookups (SSS/PH/HDMF).
+- **EEMR Logic:** All salary computations for both monthly-paid and daily-paid employees now follow the official DOLE EEMR formulas, with selectable factors and UI visibility for computed values.
 - **Semi-Monthly Processing**: Configurable 15-day pay cycles (e.g., 6th–20th / 21st–5th) via the Global Configuration.
 - **Official BIR Reporting**: 
   - **BIR Form 1601-C (PDF)**: Professional PDF summaries for monthly remittance.
@@ -712,12 +739,12 @@ flowchart TD
 - **Approval Workflow**: Leaves are filed as PENDING and require explicit approval by an administrator with `leaves_permission`. Rejected or cancelled leaves have zero impact on payroll.
 - **Leave Dashboard**: Dedicated interface summarizing pending, approved, and rejected leaves across all branches or filtered to a specific context.
 
-### 9. Payroll Exclusions in Payroll Center
+### 10. Payroll Exclusions in Payroll Center
 - **Centralized Exclusions Panel**: Payroll Exclusions now live in Payroll Center above Statutory Eligibility for faster payroll-run validation.
 - **Branch-Scoped Visibility**: Exclusions list follows the selected branch context.
 - **Post-Processing Refresh**: Exclusions auto-refresh after payroll processing to keep the table synchronized with the latest server state.
 
-### 10. Anomaly Detection
+### 11. Anomaly Detection
   - **Zero AI / Zero RAM Overhead**: Pure SQL queries and threshold rules — no machine learning libraries.
   - **Unified Filtering**: Optimized to support the same date range and multi-employee filters as the rest of the analytics suite.
   - **Ghost OT Detection**: Flags overtime > 3 hours on days with no approved fieldwork.
@@ -726,7 +753,7 @@ flowchart TD
   - **Unapproved Rest Day Work**: Flags work logged on rest days without fieldwork approval.
   - **Severity Badges**: High 🔴, Medium 🟡, Low 🔵 — sorted by priority.
 
-### 11. Payroll Simulation Mode
+### 12. Payroll Simulation Mode
 - **Dry-Run Engine**: Preview payroll results without saving — no data is committed.
 - **Salary Adjustments**: Apply percentage-based salary changes to see their impact.
 - **Bonus Overrides**: Test bonus amounts before committing.
@@ -735,13 +762,13 @@ flowchart TD
 - **SC Preview Column**: The simulation table groups SSS, PhilHealth, and Pag-IBIG into a single **SC (Statutory Contribution)** view for faster review.
 - **Comparison View**: Side-by-side simulated payslips with totals.
 
-### 12. Responsive Mobile Architecture
+### 13. Responsive Mobile Architecture
 - **Dedicated Mobile UX**: Complete parallel mobile interface utilizing dynamically injected wrapper components, preserving the integrity of the desktop UI.
 - **Floating Glassmorphic Navbar**: Enhanced bottom navigation matching premium native mobile app paradigms.
 - **Intelligent Switching**: Components and data views dynamically pivot between desktop tables and mobile-optimized cards based on viewport detection.
 - **Smart Data Culling**: Dense matrices like Payroll ledgers provide clear CTA redirects to the desktop view, ensuring mobile device rendering stays fast and lightweight.
 
-### 13. Real-Time Analytics & Privacy Guard
+### 14. Real-Time Analytics & Privacy Guard
 - **Strategic Visualization**: Glassmorphic analytics suite with reactive-key transitions for Donut and Stacked Bar charts.
 - **Multi-Tenant Privacy Guard**: Sensitive financial metrics (Branch Overview, Labor Cost, YTD) are protected by a master password-reveal lock.
   - **Session Persistence**: 3-hour auto-reveal window for convenience.
@@ -749,7 +776,7 @@ flowchart TD
   - **Branch Cost Attribution**: Interactive **Stacked Bar Chart** for multi-branch labor cost comparison dynamically aggregating your custom branches.
   - **System Override Integration**: Secure password protection (`B!zm@k3r2026`) for critical data purging and system overrides.
 
-### 14. Government Remittance Files
+### 15. Government Remittance Files
 - **SSS R3 Report**: CSV export with EE/ER shares and EC contributions.
 - **PhilHealth RF-1**: CSV export with premium splits per employee.
 - **Pag-IBIG MCRF**: CSV export with contribution breakdowns.
@@ -757,17 +784,17 @@ flowchart TD
 - **Automatic Branch Cost Comparison**: Side-by-side analytics for dynamically generated custom branches, including headcount, average salary, and budget utilization.
 - **Monthly Total Aggregation**: Combines both semi-monthly cycles into a single remittance file, aggregating per employee.
 
-### 15. Global Holiday Synchronization
+### 16. Global Holiday Synchronization
 - **Nager.Date API Integration**: Automatically synchronizes official Philippine public holidays for any given year into the local database.
 - **Holy Week Readiness**: Native handling for Maundy Thursday, Good Friday, and Black Saturday.
 - **"Resting" Logic**: Employees are automatically categorized as "Resting" instead of "Absent" on official holidays, preventing false-positive attendance reports.
 - **One-Click Sync**: Admin-accessible sync button in settings to pull latest government-declared dates.
 
-### 16. Motion Strategy
+### 17. Motion Strategy
 - **Reactive Chart Re-renders**: Analytics charts (Donut, Stacked Bar) keep their controlled load animations because they help data readability.
 - **Reduced Motion UI**: Hover lift effects were removed from tabs, cards, and standard controls so the interface stays visually stable during navigation.
 
-### 17. Employee Registry & Branch Operations
+### 18. Employee Registry & Branch Operations
 - **Bulk Branch Transfer**: Move selected employees to another branch from the registry using a single bulk action.
 - **Same-Branch Guard**: Employees already assigned to the target branch are skipped automatically to prevent no-op moves.
 - **Registry Pagination**: The Employees registry paginates at 20 records per page for cleaner browsing and faster scanning.
@@ -786,9 +813,9 @@ flowchart LR
     CHECK -- Yes --> SKIP[Skip Those Employees]
     CHECK -- No --> CONFIRM[Confirm Bulk Move]
     SKIP --> CONFIRM
-    CONFIRM --> API["POST\n/api/employees/bulk-move-branch/"]
-    API --> UPDATE["Update employee.branch\nfor eligible rows"]
-    UPDATE --> REFRESH["Refresh Registry +\nKeep 20-row Pages"]
+    CONFIRM --> API["POST<br/>/api/employees/bulk-move-branch/"]
+    API --> UPDATE["Update employee.branch<br/>for eligible rows"]
+    UPDATE --> REFRESH["Refresh Registry +<br/>Keep 20-row Pages"]
 
     style SELECT fill:#002060,color:#fff
     style TARGET fill:#6366f1,color:#fff
@@ -807,18 +834,18 @@ flowchart TD
     ACTION --> BULK[Bulk Delete Selected]
 
     SINGLE --> GUARD1{Already Deleting?}
-    GUARD1 -- Yes --> BLOCK1[Action Blocked\nButton Disabled + Spinner]
+    GUARD1 -- Yes --> BLOCK1["Action Blocked<br/>Button Disabled + Spinner"]
     GUARD1 -- No --> CONFIRM1[Confirm Dialog]
-    CONFIRM1 --> SPIN1[Show Row Spinner\nDisable All Delete Controls]
-    SPIN1 --> API1["DELETE\n/api/employees/:id/"]
-    API1 --> CLEAN1[Clear Loading State\nDeselect Row\nRefresh List]
+    CONFIRM1 --> SPIN1["Show Row Spinner<br/>Disable All Delete Controls"]
+    SPIN1 --> API1["DELETE<br/>/api/employees/:id/"]
+    API1 --> CLEAN1["Clear Loading State<br/>Deselect Row<br/>Refresh List"]
 
     BULK --> GUARD2{Already Deleting?}
-    GUARD2 -- Yes --> BLOCK2[Action Blocked\nButton Disabled + Spinner]
+    GUARD2 -- Yes --> BLOCK2["Action Blocked<br/>Button Disabled + Spinner"]
     GUARD2 -- No --> CONFIRM2[Confirm Dialog]
-    CONFIRM2 --> SPIN2[Show Bulk Spinner\nDisable All Delete Controls]
-    SPIN2 --> API2["DELETE Each Selected\nEmployee"]
-    API2 --> CLEAN2[Clear Loading State\nClear Selection\nRefresh List]
+    CONFIRM2 --> SPIN2["Show Bulk Spinner<br/>Disable All Delete Controls"]
+    SPIN2 --> API2["DELETE Each Selected<br/>Employee"]
+    API2 --> CLEAN2["Clear Loading State<br/>Clear Selection<br/>Refresh List"]
 
     style ACTION fill:#002060,color:#fff
     style BLOCK1 fill:#ef4444,color:#fff
@@ -833,7 +860,7 @@ flowchart TD
     style CONFIRM2 fill:#f8f9fa,stroke:#002060
 ```
 
-### 18. Collaborator Invitations & Access Control
+### 19. Collaborator Invitations & Access Control
 - **Email Invitation Delivery**: Owners can invite collaborators by email and the system sends a join link with an invitation code.
 - **Quick Share Choices**: Owners can generate either a **shareable link** or a **standalone short invite code** from the Collaborators page.
 - **Join Link + Auth Gate**: Invite links route users to the collaborators page with prefilled code. If the recipient is not authenticated, they are redirected to Login or Register and then returned to complete acceptance.
@@ -904,7 +931,5 @@ flowchart TD
     style ACCEPT fill:#10b981,color:#fff
     style ACCESS fill:#10b981,color:#fff
 ```
-
-## License
 
 Copyright (c) 2026 BizMaker.
