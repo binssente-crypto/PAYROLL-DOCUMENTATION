@@ -51,7 +51,10 @@ flowchart TD
         s3[ ] --- Rec
         Rec --> Cycle{Cycle Closure}
         Cycle -- Yes --> Engine[Engine: PH Compliance 5.2]
-        Engine --> EXCL[Payroll Exclusions Gate]
+        Engine --> SIL_YE{Dec 31st?}
+        SIL_YE -- Yes --> SIL_PROC[SIL Year-End Batch:<br/>Convert to Cash]
+        SIL_YE -- No --> EXCL[Payroll Exclusions Gate]
+        SIL_PROC --> EXCL
         EXCL --> ELIG[Statutory Eligibility Ledger]
         Engine --> Tables{Grid Deductions}
         Tables --> Calc[Net Pay Calculation]
@@ -64,7 +67,8 @@ flowchart TD
         Export --> REM["Statutory: R3 / RF-1 / MCRF"]
         
         Calc --> SEP{Scheduled Separation Pay?}
-        SEP -- Yes --> Gen
+        SEP -- Yes --> SEP_L["Leave Engine:<br/>Auto-Compute Payout"]
+        SEP_L --> Gen
         SEP -- No --> EXCL
     end
 
@@ -301,9 +305,14 @@ flowchart TD
 ### Leave Management & OT Integration
 ```mermaid
 flowchart TD
-    FILE[Employee Files Leave] --> APPROVAL{Admin Approval}
-    APPROVAL -- "Approved" --> TYPE{Leave/Shift Type}
-    APPROVAL -- "Rejected/Pending" --> IGNORE[Ignore in Payroll]
+    FILE[Employee Files Leave] --> POLICY{Policy Verify}
+    POLICY -- "Invalid" --> REJECT_UI[Block Submission]
+    POLICY -- "Valid" --> APPROVAL{Admin Approval}
+    
+    APPROVAL -- "Approved" --> DEDUCT["Deduct Credits<br/>Balance Ledger"]
+    DEDUCT --> TYPE{Leave/Shift Type}
+    
+    APPROVAL -- "Rejected" --> IGNORE[Ignore in Payroll]
     
     TYPE -- "Unpaid Leave" --> NO_OT[Zero Impact on OT]
     TYPE -- "Paid Full Day" --> HOURS["Calculate<br/>Guarantee Hours"]
@@ -326,7 +335,15 @@ flowchart TD
     OT_THRESH -- "Yes" --> OT_GEN[Generate Overtime]
     OT_THRESH -- "No" --> BASE
     
+    CANCEL{Admin Cancels?}
+    DEDUCT --> CANCEL
+    CANCEL -- "Yes" --> RESTORE["Restore Credits<br/>Balance Ledger"]
+    RESTORE --> IGNORE
+
     style FILE fill:#002060,color:#fff
+    style REJECT_UI fill:#ef4444,color:#fff
+    style DEDUCT fill:#10b981,color:#fff
+    style RESTORE fill:#10b981,color:#fff
     style TYPE fill:#f8f9fa,stroke:#002060
     style ARCH fill:#f8f9fa,stroke:#002060
     style HALF fill:#f8f9fa,stroke:#002060
@@ -352,10 +369,14 @@ flowchart TD
     SEP --> DIALOG[Separation Logic]
     
     DIALOG --> PERIOD["Select Scheduled<br/>Final Pay Period"]
-    DIALOG --> LEAVE["Convert Unused<br/>Leave to Cash"]
+    DIALOG --> LEAVE{"Manual Payout?"}
+    
+    LEAVE -- No --> AUTO["Leave Engine:<br/>Auto-Compute Unused SIL/VL"]
+    LEAVE -- Yes --> MANUAL["Manual Entry Override"]
     
     PERIOD --> ENGINE[Payroll Engine: Final Run]
-    LEAVE --> ENGINE
+    AUTO --> ENGINE
+    MANUAL --> ENGINE
     
     ENGINE --> ARCHIVE[Archive Employee Profile]
     ARCHIVE --> VAULT[Immutable Archival Vault]
@@ -386,6 +407,8 @@ erDiagram
     EMPLOYEE ||--o{ FIELDWORK_REQUEST : files
     EMPLOYEE ||--o{ HALF_DAY_SCHEDULE : assigned
     EMPLOYEE ||--o{ LEAVE_REQUEST : files
+    EMPLOYEE ||--o{ LEAVE_BALANCE : "has credits"
+    LEAVE_POLICY ||--o{ LEAVE_BALANCE : "defines rules"
     
     PAYROLL_PERIOD ||--o{ PAYSLIP : contains
     EMPLOYEE ||--o{ PAYSLIP : receives
@@ -446,6 +469,27 @@ erDiagram
         string half_day_period "AM/PM"
         string status "PENDING/APPROVED/REJECTED"
         datetime approved_at
+    }
+    
+    LEAVE_POLICY {
+        string leave_type "SIL/VL/SL"
+        decimal annual_credits
+        string year_end_rule "CASH_CONVERT/CARRY_OVER/FORFEIT"
+        boolean is_mandatory "DOLE SIL Flag"
+        boolean is_active
+        int min_tenure_months
+    }
+    
+    LEAVE_BALANCE {
+        int year "Fiscal Year"
+        string leave_type "Policy reference"
+        decimal total_credits
+        decimal carried_over "From prev year"
+        decimal used_credits
+        decimal converted_to_cash
+        decimal cash_conversion_amount
+        boolean is_year_end_processed
+        decimal remaining_credits "Property: total - used"
     }
     
     PAYSLIP {
@@ -730,14 +774,69 @@ flowchart TD
 - **Branch Fallback Configuration**: If no shift is assigned, the system relies on the branch-specific work schedule archetype and standard shift boundaries.
 
 ### 9. DOLE-Compliant Leave Management System
+- **Configurable Policy Engine**: Define rules for each leave type across the company.
+  - Set **Annual Credits** (e.g., 5 days for SIL, 15 for VL/SL).
+  - Configure **Year-End Rules**: Convert to Cash (Monetize), Carry Over, or Forfeit ("Use it or lose it").
+  - Flag **Mandatory Leaves** (like DOLE Service Incentive Leave - SIL) which automatically integrate with payroll and separation pay.
+- **Persistent Balance Tracking**: Each employee has yearly ledgers (`LeaveBalance`) for every active policy.
+  - Real-time tracking of `total_credits`, `used_credits`, `remaining_credits`, and `carried_over_credits`.
+  - Approved leaves automatically deduct from the remaining balance. Cancelling an approved leave restores the credits seamlessly.
 - **10 Statutory Leave Types**: Native support for SIL, Vacation, Sick, Maternity (RA 11210), Paternity (RA 8187), Solo Parent (RA 8972), VAWC (RA 9262), Magna Carta (RA 9710), Bereavement, and Emergency leaves.
+- **Year-End Batch Processing**: 
+  - Executes the configured policies across the entire organization at the end of the fiscal year.
+  - Mandated SIL credits are converted to cash and directly injected into the December payslip as a non-taxable (if under ₱90k limit) bonus.
+  - Generates comprehensive previews (cash conversion totals, carry-over days) before committing.
+- **Integrated Separation Payout**: When an employee is marked as Resigned or Terminated, the system queries all monetizable unused credits (e.g., SIL, VL) and automatically calculates the `leave_conversion_amount` to be included in their final payslip.
 - **Integrated Overtime Calculation**: Paid leave hours are intelligently credited toward the employee's daily OT threshold. Taking a paid leave (or half-day paid leave) physically counts as "worked hours" when stacking with actual physical presence to calculate overtime.
-- **Dynamic OT Thresholds**: The threshold adapts to the branch archetype. A full-day paid leave on a 4/10 compressed schedule credits 10 hours toward OT, while standard schedules credit 8 hours.
-- **Half-Day Overtime Compliance**: 
-  - **Employee-Requested Half-Days**: Hard-capped at 4 physical hours to prevent unauthorized OT accrual per DOLE standard.
-  - **Company-Mandated Half-Days (SIX_DAY_HALF)**: Dynamically lowers the OT threshold to 4.0 for that specific day, allowing any extra physical hours to overflow natively into Overtime payout.
+  - **Dynamic OT Thresholds**: The threshold adapts to the branch archetype. A full-day paid leave on a 4/10 compressed schedule credits 10 hours toward OT, while standard schedules credit 8 hours.
+  - **Half-Day Overtime Compliance**: 
+    - **Employee-Requested Half-Days**: Hard-capped at 4 physical hours to prevent unauthorized OT accrual per DOLE standard.
+    - **Company-Mandated Half-Days (SIX_DAY_HALF)**: Dynamically lowers the OT threshold to 4.0 for that specific day, allowing any extra physical hours to overflow natively into Overtime payout.
 - **Approval Workflow**: Leaves are filed as PENDING and require explicit approval by an administrator with `leaves_permission`. Rejected or cancelled leaves have zero impact on payroll.
-- **Leave Dashboard**: Dedicated interface summarizing pending, approved, and rejected leaves across all branches or filtered to a specific context.
+- **Leave Dashboard**: Glassmorphic UI featuring live balance cards with animated meters, policy management, and year-end processing tools.
+
+#### Leave Credit Lifecycle
+```mermaid
+flowchart TD
+    POLICY[Company Leave Policy] --> |Initialize| BAL[(Employee Balance Ledger)]
+    
+    FILE[Employee Files Request] --> BAL_CHECK{Check Balance}
+    BAL_CHECK -- Insufficient --> REJECT_UI[Block Submission]
+    BAL_CHECK -- Sufficient --> PENDING[Pending Request]
+    
+    PENDING --> APPROVAL{Admin Review}
+    APPROVAL -- Reject --> END1[No Action]
+    APPROVAL -- Approve --> DEDUCT["Deduct Credits<br/>(remaining = remaining - days)"]
+    
+    DEDUCT --> CANCEL{Admin Cancels?}
+    CANCEL -- Yes --> RESTORE["Restore Credits<br/>(remaining = remaining + days)"]
+    
+    YEAREND[December Year-End] --> RULE{Policy Rule?}
+    RULE -- Cash Convert --> CASH["Convert to Cash<br/>(remaining × daily_rate)"]
+    RULE -- Carry Over --> CARRY["Carry Over<br/>to Next Year Balance"]
+    RULE -- Forfeit --> FORFEIT["Credits Zeroed"]
+    
+    CASH --> PAYROLL["Inject to<br/>December Payslip"]
+    
+    SEP[Employee Separation] --> EVAL["Evaluate Unused<br/>Monetizable Credits"]
+    EVAL --> CALC_SEP["Calculate Cash Value"]
+    CALC_SEP --> FINAL_PAY["Inject to<br/>Final Payslip"]
+
+    style POLICY fill:#002060,color:#fff
+    style BAL fill:#10b981,color:#fff
+    style FILE fill:#f8f9fa,stroke:#002060
+    style REJECT_UI fill:#ef4444,color:#fff
+    style PENDING fill:#f59e0b,color:#fff
+    style APPROVAL fill:#f8f9fa,stroke:#002060
+    style DEDUCT fill:#10b981,color:#fff
+    style RESTORE fill:#10b981,color:#fff
+    style CASH fill:#D4AF37,color:#fff
+    style CARRY fill:#6366f1,color:#fff
+    style FORFEIT fill:#ef4444,color:#fff
+    style PAYROLL fill:#D4AF37,color:#fff
+    style SEP fill:#ef4444,color:#fff
+    style FINAL_PAY fill:#D4AF37,color:#fff
+```
 
 ### 10. Payroll Exclusions in Payroll Center
 - **Centralized Exclusions Panel**: Payroll Exclusions now live in Payroll Center above Statutory Eligibility for faster payroll-run validation.
@@ -800,7 +899,7 @@ flowchart TD
 - **Registry Pagination**: The Employees registry paginates at 20 records per page for cleaner browsing and faster scanning.
 - **DOLE-Compliant Separation & Archival**:
   - **Final Pay Automation**: Admins select a future payroll period for final pay. The engine automatically excludes the employee from all periods *except* the designated one.
-  - **Leave Conversion**: Unused leave credits (SIL/VL) can be converted to cash and bundled into the final pay.
+  - **Leave Conversion**: Unused leave credits (SIL/VL) are automatically computed by the **Leave Engine** based on persistent balances and daily rates, ensuring DOLE-compliant final pay with zero manual entry required.
   - **Study Break Logic**: Direct toggle to exclude employees from payroll for study leaves without formally separating them.
   - **Immutable Registry**: Archived employees are moved to a separate vault where their records and payroll history become read-only and immutable.
 - **Delete Loading Guards**: Both single-row and bulk delete actions display loading spinners and disable all delete controls while the API call is in flight, preventing duplicate deletion requests from repeated clicks.
@@ -932,4 +1031,6 @@ flowchart TD
     style ACCESS fill:#10b981,color:#fff
 ```
 
-Copyright (c) 2026 BizMaker.
+## License
+
+Copyright (c) 2026 BizMaker. 
