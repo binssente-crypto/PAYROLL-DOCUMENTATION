@@ -189,6 +189,48 @@ flowchart LR
     style API fill:#6366f1,color:#fff
 ```
 
+## Role-Based Access Control (RBAC)
+
+BizMaker features a tiered permission architecture designed for multi-tenant scalability and secure data isolation.
+
+### System Roles
+1.  **Superadmin**:
+    *   **Scope**: Global System.
+    *   **Capabilities**: Manual tenant provisioning, sales summary analytics, global configuration management, and cross-tenant auditing.
+2.  **Admin (Business Owner)**:
+    *   **Scope**: Specific Tenant Workspace.
+    *   **Capabilities**: Full management of the payroll ecosystem (Employees, Attendance, Payroll, Shifts, etc.) within their own organization.
+3.  **Employee**:
+    *   **Scope**: Personal Self-Service.
+    *   **Capabilities**: View own payslips, attendance history, and leave balances via the dedicated Employee Portal.
+
+### User Lifecycle & Role Transition
+```mermaid
+flowchart TD
+    START([Visitor / New User]) --> REG[Register Account]
+    REG --> DEFAULT["Default Role: EMPLOYEE<br/>(No Workspace)"]
+    
+    DEFAULT --> CHOICE{Action?}
+    
+    CHOICE -- "Create Workspace" --> UPGRADE["Upgrade to ADMIN<br/>(System creates Tenant)"]
+    CHOICE -- "Join Workspace" --> LINK["Stay as EMPLOYEE<br/>(Link via HR Invite Code)"]
+    
+    UPGRADE --> WIZARD[Admin Setup Wizard]
+    WIZARD --> READY[Full Admin Access]
+    
+    LINK --> PORTAL[Self-Service Portal Access]
+    
+    SUPER[Superadmin] --> PROV["Provision Tenant<br/>(Create Admin Account)"]
+    PROV --> UPGRADE
+
+    style START fill:#002060,color:#fff
+    style UPGRADE fill:#D4AF37,color:#fff
+    style LINK fill:#10b981,color:#fff
+    style READY fill:#10b981,color:#fff
+    style SUPER fill:#ef4444,color:#fff
+    style CHOICE fill:#f8f9fa,stroke:#002060
+```
+
 ### Anomaly Detection Pipeline
 ```mermaid
 flowchart LR
@@ -378,10 +420,11 @@ flowchart TD
     AUTO --> ENGINE
     MANUAL --> ENGINE
     
-    ENGINE --> ARCHIVE[Archive Employee Profile]
+    ENGINE --> FLOOR["Apply 1-Month<br/>Minimum Floor (Art. 298)"]
+    FLOOR --> ARCHIVE[Archive Employee Profile]
     ARCHIVE --> VAULT[Immutable Archival Vault]
     VAULT --> HISTORY[Read-Only Payroll History]
-    VAULT -- "DOLE Policy" --> PROTECT[Deletion Blocked]
+    VAULT -- "DOLE Policy" --> PROTECT[Hover to Reveal Policy]
 
     style REGISTRY fill:#002060,color:#fff
     style ACTION fill:#f8f9fa,stroke:#002060
@@ -418,6 +461,12 @@ erDiagram
     PH_TABLE ||--o{ PAYROLL_CONFIGURATION : references
     BIR_TAX_TABLE ||--o{ PAYROLL_CONFIGURATION : references
     USER ||--o{ LEAVE_REQUEST : approves
+    USER ||--o{ INVITATION : "sends (as inviter)"
+    USER ||--o{ INVITATION : "accepts"
+    USER ||--o{ COLLABORATOR_ACCESS : "grants (as inviter)"
+    USER ||--o{ COLLABORATOR_ACCESS : "receives (as collaborator)"
+    INVITATION ||--o| COLLABORATOR_ACCESS : "results in"
+    USER ||--o{ COLLABORATOR_AUDIT_LOG : "performs action"
 
     EMPLOYEE {
         string employee_id PK
@@ -428,9 +477,10 @@ erDiagram
         decimal basic_salary "Monthly Base"
         decimal hourly_rate "Auto-calculated"
         string employment_status "ACTIVE/RESIGNED/TERMINATED/ARCHIVED"
-        string separation_type "RESIGNATION/TERMINATION"
+        string separation_type "RESIGNATION/LABOR_SAVING/etc"
         date separation_date
         decimal leave_conversion_amount "SIL/VL Cash Value"
+        int maternity_delivery_count "RA 8187 Cap Tracker"
         boolean is_on_study_break "Payroll Exclusion Flag"
         datetime archived_at
     }
@@ -499,6 +549,10 @@ erDiagram
         decimal philhealth_deduction
         decimal pagibig_deduction
         decimal withholding_tax "BIR 1601-C Computed"
+        decimal employer_sss_share "Remittance Tracking"
+        decimal employer_ec_contribution "EC Program"
+        decimal employer_philhealth_share "Remittance Tracking"
+        decimal employer_pagibig_share "Remittance Tracking"
         decimal bonuses "PA/Christmas/Manual"
     }
 
@@ -523,6 +577,53 @@ erDiagram
         decimal principal_amount
         decimal remaining_balance
         string status "ACTIVE/PAID/CANCELLED"
+    }
+
+    COLLABORATOR_ACCESS {
+        int id PK
+        int inviter_id FK
+        int collaborator_id FK
+        string employees_permission "NONE/VIEW/EDIT"
+        string attendance_permission "NONE/VIEW/EDIT"
+        string shifts_permission "NONE/VIEW/EDIT"
+        string payroll_permission "NONE/VIEW/EDIT"
+        string loans_permission "NONE/VIEW/EDIT"
+        string tax_tables_permission "NONE/VIEW/EDIT"
+        string settings_permission "NONE/VIEW/EDIT"
+        string leaves_permission "NONE/VIEW/EDIT"
+        string status "ACTIVE/REVOKED/SUSPENDED"
+        datetime created_at
+        datetime updated_at
+        datetime revoked_at
+        int invitation_used_id FK
+    }
+
+    INVITATION {
+        int id PK
+        int inviter_id FK
+        string email
+        boolean is_link_invite
+        string invite_code
+        string qr_code "Base64 PNG"
+        string status "PENDING/ACCEPTED/EXPIRED/REVOKED"
+        boolean is_used
+        int accepted_by_id FK
+        datetime accepted_at
+        datetime created_at
+        datetime expires_at
+    }
+
+    COLLABORATOR_AUDIT_LOG {
+        int id PK
+        int inviter_id FK
+        int collaborator_id FK
+        string action "INVITE_SENT/ACCEPTED/REVOKED/etc"
+        json previous_permissions
+        json new_permissions
+        string reason
+        int performed_by_id FK
+        datetime performed_at
+        string ip_address
     }
 
     SHIFT {
@@ -589,7 +690,7 @@ H --> I["Basic Monthly Salary"]
 - **Resilience Layer**: The system features an integrated "Finalized Recovery" mechanism to restore mission-critical imports and logic automatically if repository corruption is detected.
 
 ### 2. Philippine Payroll Compliance
-- **Payroll XLSX Export (Premium)**: Multi-sheet Excel workbook with live formulas, individual employee sheets, Master Summary, and dynamic statutory contribution lookups (SSS/PH/HDMF).
+- **Payroll XLSX Export (Premium)**: Multi-sheet Excel workbook with live formulas, a Master Summary, and dynamic statutory contribution lookups (SSS/PH/HDMF). Individual employee calculation sheets are generated but securely hidden to ensure a clean, executive-level layout without breaking complex formulas.
 - **EEMR Logic:** All salary computations for both monthly-paid and daily-paid employees now follow the official DOLE EEMR formulas, with selectable factors and UI visibility for computed values.
 - **Semi-Monthly Processing**: Configurable 15-day pay cycles (e.g., 6th–20th / 21st–5th) via the Global Configuration.
 - **Official BIR Reporting**: 
@@ -597,6 +698,10 @@ H --> I["Basic Monthly Salary"]
   - **Annual Alpha-List (.DAT)**: Mandatory BIR-compliant file format for validation modules.
 - **Bank Transmittal (CSV)**: Grouped salary disbursement files with period identifiers.
 - **Holiday Pay Matrix**: Automated Regular (200%), Special (130%), Local (130%), and Rest Day (130%) premiums with full DOLE-compliant stacking for double holidays, holiday+rest day combos, and mixed-type overlaps.
+- **Unworked Regular Holiday Pay**: Eligible daily-paid employees who do not work on a single regular holiday automatically receive a 100% daily rate unworked premium to fulfill the DOLE "no work, still paid" mandate.
+- **Service Charge Distribution**: 100% of collected service charges are distributed equally among covered employees in a locked, atomic transaction during payroll generation (RA 11360).
+- **Separation Pay Minimums**: The engine enforces a strict minimum floor—regardless of the authorized cause (e.g., retrenchment at 0.5x, or labor-saving devices at 1.0x), separation pay will never be less than one month's basic salary (Art. 298/299).
+- **13th Month Pay Base**: Basic salary is calculated strictly according to PD 851, explicitly excluding overtime pay, night shift differential, holiday premiums, COLA, leave equivalents, and profit-sharing from the annualized base.
 - **DOLE Overtime Stacking**: Dynamic OT multiplier computed from the day rate — handles all combinations automatically:
 
   | Day Type | Day Rate | OT Rate | Example (₱100/hr) |
@@ -670,7 +775,7 @@ flowchart TD
     style BASE8 fill:#ef4444,color:#fff
 ```
 
-- **Government Tables**: Automated SSS, PhilHealth, and Pag-IBIG deduction rules.
+- **Government Tables**: Automated SSS, PhilHealth, and Pag-IBIG deduction rules. The engine now records both employee deductions and **Employer Statutory Contributions** (including EC) on the payslip to facilitate precise remittance reporting.
 - **Resilience Recovery**: The engine includes a surgical self-healing layer that restores missing Python imports and logic (e.g., `loans/views.py`, `shifts/views.py`) to prevent system-wide payroll failures during codebase migrations.
 - **Admin Configuration Toggles**:
     - **Auto-accrue 14th–16th Month Pay**: 13th month accrues from earned basic pay across the year and is released during December payroll periods. When toggled ON, all employees receive 14th–16th accrual eligibility and toggles are LOCKED.
@@ -781,7 +886,7 @@ flowchart TD
 - **Persistent Balance Tracking**: Each employee has yearly ledgers (`LeaveBalance`) for every active policy.
   - Real-time tracking of `total_credits`, `used_credits`, `remaining_credits`, and `carried_over_credits`.
   - Approved leaves automatically deduct from the remaining balance. Cancelling an approved leave restores the credits seamlessly.
-- **10 Statutory Leave Types**: Native support for SIL, Vacation, Sick, Maternity (RA 11210), Paternity (RA 8187), Solo Parent (RA 8972), VAWC (RA 9262), Magna Carta (RA 9710), Bereavement, and Emergency leaves.
+- **10 Statutory Leave Types**: Native support for SIL, Vacation, Sick, Maternity (RA 11210), Paternity (RA 8187 with auto-tracking for the 4-delivery cap), Solo Parent (RA 8972), VAWC (RA 9262), Magna Carta (RA 9710), Bereavement, and Emergency leaves.
 - **Year-End Batch Processing**: 
   - Executes the configured policies across the entire organization at the end of the fiscal year.
   - Mandated SIL credits are converted to cash and directly injected into the December payslip as a non-taxable (if under ₱90k limit) bonus.
@@ -887,6 +992,7 @@ flowchart TD
 - **Nager.Date API Integration**: Automatically synchronizes official Philippine public holidays for any given year into the local database.
 - **Holy Week Readiness**: Native handling for Maundy Thursday, Good Friday, and Black Saturday.
 - **"Resting" Logic**: Employees are automatically categorized as "Resting" instead of "Absent" on official holidays, preventing false-positive attendance reports.
+- **Dynamic Action Bar**: The **Sync Official PH Holidays** and **Translate Names** controls are relocated to the top search bar for permanent visibility, ensuring they remain accessible even as the holiday list grows.
 - **One-Click Sync**: Admin-accessible sync button in settings to pull latest government-declared dates.
 
 ### 17. Motion Strategy
@@ -901,7 +1007,8 @@ flowchart TD
   - **Final Pay Automation**: Admins select a future payroll period for final pay. The engine automatically excludes the employee from all periods *except* the designated one.
   - **Leave Conversion**: Unused leave credits (SIL/VL) are automatically computed by the **Leave Engine** based on persistent balances and daily rates, ensuring DOLE-compliant final pay with zero manual entry required.
   - **Study Break Logic**: Direct toggle to exclude employees from payroll for study leaves without formally separating them.
-  - **Immutable Registry**: Archived employees are moved to a separate vault where their records and payroll history become read-only and immutable.
+  - **Immutable Registry**: Archived employees are moved to a separate vault where their records and payroll history become read-only.
+  - **Interactive Compliance Badge**: The **DOLE Compliant** badge in the archive now features a hover-reveal disclosure ("Archived records and payroll history cannot be deleted") to maintain a clean interface while ensuring legal transparency.
 - **Delete Loading Guards**: Both single-row and bulk delete actions display loading spinners and disable all delete controls while the API call is in flight, preventing duplicate deletion requests from repeated clicks.
 
 #### Employee Branch Transfer Flow
@@ -964,7 +1071,37 @@ flowchart TD
 - **Quick Share Choices**: Owners can generate either a **shareable link** or a **standalone short invite code** from the Collaborators page.
 - **Join Link + Auth Gate**: Invite links route users to the collaborators page with prefilled code. If the recipient is not authenticated, they are redirected to Login or Register and then returned to complete acceptance.
 - **Fallback Invite Code**: Invitations always include a code that can be entered manually in-app.
-- **Permission Scoping**: Owners can assign module-level permissions (Employees, Attendance, Shifts, Payroll, Loans, Tax Tables, Settings).
+- **Permission Scoping**: Owners can assign module-level permissions (Employees, Attendance, Shifts, Payroll, Loans, Tax Tables, Settings, Leaves).
+
+#### Collaborator System Architecture
+```mermaid
+flowchart TD
+    subgraph Users
+        O[Owner User / Primary]
+        C[Collaborator User / Secondary]
+    end
+
+    O -->|Creates Invitation with QR| INV["Invitation Model<br/>(Temporary: 7 Days)"]
+    C -->|Accepts with Code| INV
+
+    INV -->|After Acceptance| ACC["CollaboratorAccess Model<br/>(Persistent)"]
+    
+    subgraph Permissions [Module Permissions]
+        direction TB
+        P["NONE / VIEW / EDIT<br/>Applied to: Employees, Attendance, Shifts,<br/>Payroll, Loans, Tax Tables, Settings, Leaves"]
+    end
+
+    ACC --> P
+    ACC -->|Logs all changes| AUD[CollaboratorAuditLog]
+    ACC -->|Enforced on Access| ENF[ViewSet Permission Enforcement]
+
+    style O fill:#002060,color:#fff
+    style C fill:#6366f1,color:#fff
+    style INV fill:#f59e0b,color:#fff
+    style ACC fill:#10b981,color:#fff
+    style AUD fill:#D4AF37,color:#fff
+    style ENF fill:#ef4444,color:#fff
+```
 
 #### Sign-Up Email Verification Flow
 ```mermaid
