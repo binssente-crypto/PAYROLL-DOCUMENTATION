@@ -20,15 +20,17 @@ Payroll/
 ├── README.md                   # Core documentation (System overview, ERD, APIs)
 ├── bridge_agent/               # Python utility polling ZKTeco biometric edge devices
 ├── attendance_records/         # Local backups for physical device log dumps
+├── gen_diagnostic.py          # Diagnostic overlay generator for BIR Form 2316 template
 ├── payroll_backend/            # Django monolithic backend application
 │   ├── manage.py               # Django management CLI entrypoint
-│   ├── core/                   # Central settings, routing, and CORS middleware
-│   ├── collaborators/          # Organization tenancy and RBAC permission models
-│   ├── employees/              # Onboarding invites, PII database and model validations
-│   ├── attendance/             # Daily attendance logic, shift scheduling, anomaly engine
+│   ├── core/                   # Central settings, routing, auth, bug reports, maintenance
+│   ├── collaborators/          # Organization tenancy, collaborator invites, and RBAC models
+│   ├── employees/              # Onboarding invites, PII database, branches, and departments
+│   ├── attendance/             # Daily attendance, leave engine, biometric logs, fieldwork, OT
 │   ├── shifts/                 # Work patterns, flexi schedules, and branch parameters
 │   ├── loans/                  # Cash bond tracking and custom employee loan ledgers
-│   └── payroll/                # Statutory calculation engine (SSS/PH/HDMF, Hazard Pay, tax)
+│   ├── payroll/                # Statutory calculation engine (SSS/PH/HDMF, tax, 13th month, 2316)
+│   └── subscriptions/          # SaaS billing tiers, PayMaya checkout sessions, feature gating
 └── payroll_frontend_new/       # Vite-powered Vue 3 single page application (SPA)
     ├── vite.config.ts          # Build configuration and routing proxies
     ├── index.html              # SPA entry HTML page template
@@ -37,12 +39,13 @@ Payroll/
         ├── App.vue             # Root component layout container
         ├── main.ts             # App bootstrap, element-plus imports, and mounting
         ├── router/             # Vue Router configuration and navigation guards
-        ├── stores/             # Pinia stores split by domain (auth, employees, etc.)
+        ├── stores/             # Pinia stores (auth, employees, payroll, attendance, etc.)
+        ├── components/         # Reusable UI widgets (Header, Sidebar, FeatureGate, TinInput)
         └── views/
-            └── admin/          # High-fidelity dashboard views (Employees, Payroll, Approvals)
-                ├── mobile/     # Mobile-optimized fallback view pages
-                ├── CompanyProfile.vue # BIR employer settings & branch manager
-                └── CompanyProfileWrapper.vue # Layout wrapper for desktop & mobile
+            ├── admin/          # High-fidelity dashboard views (Employees, Payroll, Leaves, etc.)
+            │   └── mobile/     # Mobile-optimized responsive fallback views
+            ├── auth/           # Login, Register, Forgot Password, Profile Setup, Checkout
+            └── legal/          # Privacy Policy, Terms of Service, Cookie Policy, DPA
 ```
 
 ## Entity Relationship Diagram (ERD)
@@ -63,10 +66,6 @@ erDiagram
         json bypass_roles
         boolean send_email_notifications
     }
-    Tenant ||--o{ Branch : "owns"
-    Tenant ||--o{ Shift : "defines"
-    Tenant ||--o{ PayrollConfiguration : "configures"
-    Tenant ||--o| TenantSubscription : "subscribes"
     SubscriptionPlan ||--o{ TenantSubscription : "provides"
     SubscriptionPlan {
         string name
@@ -80,6 +79,7 @@ erDiagram
         boolean is_active
         int sort_order
     }
+    Tenant ||--o| TenantSubscription : "subscribes"
     TenantSubscription {
         string status "TRIAL | ACTIVE | PAST_DUE | CANCELED | EXPIRED"
         string billing_cycle "MONTHLY | ANNUAL"
@@ -88,6 +88,16 @@ erDiagram
         datetime grace_period_end
         boolean auto_renew
     }
+    Tenant ||--o{ Branch : "owns"
+    Tenant ||--o{ Department : "defines"
+    Tenant ||--o{ Employee : "employs"
+    Tenant ||--o{ Shift : "defines"
+    Tenant ||--o{ PayrollConfiguration : "configures"
+    Tenant ||--o{ LeavePolicy : "defines"
+    Tenant ||--o{ PayrollPeriod : "schedules"
+    Tenant ||--o{ BugReport : "tracks"
+    Tenant ||--o{ Invitation : "issues"
+    Tenant ||--o{ CollaboratorAccess : "grants"
     Tenant {
         string employer_registered_name
         string employer_tin "9-digit corporate base TIN"
@@ -109,67 +119,169 @@ erDiagram
         boolean hide_header_text "Hide header text toggle"
         string authorized_signature "Tenant default BIR 2316 signatory image"
     }
-    Branch ||--o{ Employee : "employs"
+    Branch ||--o{ Employee : "assigned_to"
     Branch {
         string name
-        string tin_extension "3-digit branch code (000=Main)"
+        string tin_extension "3-digit branch code"
         string address
         string region
-        decimal default_meal_allowance "Default meal allowance"
-        boolean meal_allowance_is_daily_attendance_based "Daily stipend multiplier"
-        decimal default_transportation_allowance "Default transport allowance"
-        boolean transportation_allowance_is_daily_attendance_based "Daily stipend multiplier"
-        int tardy_grace_period_mins "0 | 5 | 10 | 15"
-        string tardy_grace_period_policy "DEDUCT_EXCESS_ONLY | DEDUCT_FULL_FROM_START"
-        string header_logo "Branch background banner image"
-        string branch_logo "Branch side logo image"
-        string authorized_signature "Branch-specific BIR 2316 signatory image override"
-        int active_employee_count "derived property"
+        decimal default_meal_allowance
+        boolean meal_allowance_is_daily_attendance_based
+        decimal default_transportation_allowance
+        boolean transportation_allowance_is_daily_attendance_based
+        int tardy_grace_period_mins
+        string tardy_grace_period_policy
+        string header_logo
+        string branch_logo
+        string authorized_signature
+    }
+    Department ||--o{ Employee : "belongs_to"
+    Department {
+        string name
+        string code
+    }
+    Employee ||--o{ EmployeeShift : "scheduled_for"
+    Employee ||--o{ DailyAttendance : "logs"
+    Employee ||--o{ LeaveBalance : "owns"
+    Employee ||--o{ LeaveRequest : "submits"
+    Employee ||--o{ OvertimeRequest : "files"
+    Employee ||--o{ FieldworkRequest : "requests"
+    Employee ||--o{ Loan : "holds"
+    Employee ||--o{ Payslip : "receives"
+    Employee {
+        string employee_id
+        string first_name
+        string last_name
+        string tin_no "9-digit individual TIN"
+        date joining_date
+        string employment_type "REGULAR | PROBATIONARY | CONTRACTUAL"
+        decimal basic_salary
+        string salary_type "MONTHLY | DAILY | HOURLY"
+        boolean is_active
+        boolean is_mwe "Minimum Wage Earner"
+        boolean is_suspended "Disciplinary suspension flag"
+        string suspension_reason
+        int suspension_count
+        int suspension_days
+        int total_suspended_days
+        date suspension_start_date
+        date suspension_end_date
     }
     Shift ||--o{ EmployeeShift : "assigned_via"
     Shift {
         string name
         time start_time
         time end_time
-        time break_start "Optional meal break start"
-        time break_end "Optional meal break end"
-        boolean is_night_shift "Midnight crossover"
-        int grace_period_mins "0 | 5 | 10 | 15"
-        string grace_period_policy "DEDUCT_EXCESS_ONLY | DEDUCT_FULL_FROM_START"
-        boolean is_compressed_workweek "DOLE Advisory 02-04"
-        string cww_type "FOUR_DAY_10H | FOUR_HALF_DAY_9H | FIVE_DAY_9_6H"
-        decimal regular_daily_hours "Custom daily OT threshold (e.g. 10.0h)"
+        time break_start
+        time break_end
+        boolean is_night_shift
+        int grace_period_mins
+        string grace_period_policy
+        boolean is_compressed_workweek
+        string cww_type
+        decimal regular_daily_hours
+    }
+    LeavePolicy ||--o{ LeaveBalance : "governs"
+    LeavePolicy {
+        string leave_type "SIL | VL | SL | MAT | PAT | etc"
+        string name
+        decimal days_per_year
+        string accrual_mode "ANNUAL_FRONTLOAD | MONTHLY_ACCRUAL"
+        boolean is_active
+        boolean is_paid
+        boolean allow_carry_over
+        decimal max_carry_over_days
+        boolean allow_cash_conversion
+        decimal max_cash_conversion_days
+        int requires_min_tenure_months
+        int min_advance_notice_days
+        boolean allow_retroactive_filing
+        int max_retroactive_days
+    }
+    LeaveBalance {
+        string leave_type
+        int year
+        decimal total_credits
+        decimal carried_over
+        decimal used_credits
+        decimal converted_to_cash
+        decimal cash_conversion_amount
+        boolean is_year_end_processed
+    }
+    LeaveRequest {
+        string leave_type
+        date start_date
+        date end_date
+        decimal days_requested
+        string status "PENDING | APPROVED | REJECTED | CANCELLED | CANCEL_REQUESTED"
+        text reason
+    }
+    DailyAttendance {
+        date date
+        datetime time_in
+        datetime time_out
+        decimal total_hours
+        decimal regular_hours
+        decimal overtime_hours
+        decimal night_diff_hours
+        int late_minutes
+        int undertime_minutes
+        string status "PRESENT | ABSENT | REST_DAY | HOLIDAY | LEAVE | FIELDWORK"
+        boolean is_anomaly
+    }
+    PayrollPeriod ||--o{ Payslip : "contains"
+    PayrollPeriod {
+        string name
+        string schedule "SEMI_MONTHLY | MONTHLY | WEEKLY"
+        date start_date
+        date end_date
+        boolean is_processed
+    }
+    Payslip {
+        decimal basic_pay
+        decimal overtime_pay
+        decimal night_diff_pay
+        decimal holiday_pay
+        decimal hazard_pay
+        decimal allowances
+        decimal sss_deduction
+        decimal philhealth_deduction
+        decimal pagibig_deduction
+        decimal withholding_tax
+        decimal gross_pay
+        decimal net_pay
+        boolean is_annualized
+    }
+    Loan ||--o{ LoanPayment : "amortizes"
+    Loan {
+        string loan_type "COMPANY | CASH_ADVANCE | SSS | HDMF"
+        decimal principal_amount
+        decimal monthly_deduction
+        decimal total_paid
+        decimal remaining_balance
+        string status "ACTIVE | FULLY_PAID | DEFAULTED"
+    }
+    LoanPayment {
+        decimal amount
+        date payment_date
+        boolean is_auto_deducted
     }
     PayrollConfiguration {
-        decimal overtime_multiplier "Statutory Floor >= 1.25"
-        decimal rest_day_multiplier "Statutory Floor >= 1.30"
-        decimal regular_holiday_multiplier "Statutory Floor >= 2.00"
-        decimal special_holiday_multiplier "Statutory Floor >= 1.30"
-        decimal night_diff_multiplier "Statutory Floor >= 1.10"
-        string holiday_pay_day_before_rule "STRICT_DOLE | GENEROUS_COMPANY"
-        int tardy_grace_period_mins "0 | 5 | 10 | 15"
-        string tardy_grace_period_policy "DEDUCT_EXCESS_ONLY | DEDUCT_FULL_FROM_START"
-        string proration_method "WORKING_DAYS | CALENDAR_DAYS | DEDUCTION"
-        boolean email_payslip_password_protect "Toggleable AES-256 PDF Encryption"
-        boolean disciplinary_policy_enabled "Master toggle for progressive discipline"
-        int late_threshold_for_suspension "Tardiness count trigger for suspension (1-30)"
-        int suspensions_for_termination "Cumulative suspensions limit for dismissal review (1-10)"
-        int consecutive_absences_for_suspension "Consecutive absence trigger (1-15)"
-        int default_suspension_days "Default suspension duration (1-30, application limit)"
-    }
-    Employee ||--o{ EmployeeShift : "schedules"
-    Employee {
-        string employee_id
-        string first_name
-        string last_name
-        string tin_no "9-digit individual employee TIN"
-        boolean is_suspended "Active disciplinary suspension flag"
-        string suspension_reason "Infraction rationale"
-        int suspension_count "Cumulative historical disciplinary suspensions"
-        int suspension_days "Current suspension duration in days"
-        int total_suspended_days "Cumulative historical suspended days"
-        date suspension_start_date "Effective suspension start date"
-        date suspension_end_date "Calculated suspension end date"
+        decimal overtime_multiplier
+        decimal rest_day_multiplier
+        decimal regular_holiday_multiplier
+        decimal special_holiday_multiplier
+        decimal night_diff_multiplier
+        string holiday_pay_day_before_rule
+        int tardy_grace_period_mins
+        string tardy_grace_period_policy
+        string proration_method
+        boolean email_payslip_password_protect
+        boolean disciplinary_policy_enabled
+        int late_threshold_for_suspension
+        int suspensions_for_termination
+        int consecutive_absences_for_suspension
+        int default_suspension_days
     }
 ```
 
